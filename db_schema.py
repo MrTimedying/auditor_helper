@@ -22,8 +22,6 @@ def backup_db():
 def init_db():
     """Initialize the database with the required tables"""
     
-    # Backup existing database
-    backup_db()
     
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()

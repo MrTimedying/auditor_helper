@@ -20,8 +20,9 @@ class TaskGrid(QtWidgets.QTableWidget):
         self.horizontalHeader().setStretchLastSection(True)
         self.verticalHeader().setVisible(False)
         
-        # Allow editing cells directly
-        self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
+        # Set edit triggers to handle feedback cells specially
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.cellDoubleClicked.connect(self.handle_cell_double_clicked)
         
         # Set column widths
         self.setColumnWidth(0, 100)  # Attempt ID
@@ -37,6 +38,23 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Connect signals
         self.cellChanged.connect(self.handle_cell_changed)
+    
+    def handle_cell_double_clicked(self, row, col):
+        # Skip if we don't have task data
+        if not hasattr(self, 'tasks') or row >= len(self.tasks):
+            return
+            
+        task_id = self.tasks[row][0]
+        
+        # Handle feedback cell (col 8)
+        if col == 8:
+            self.edit_feedback(task_id)
+            return
+        
+        # For other cells, make them editable
+        item = self.item(row, col)
+        if item:
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
     
     def handle_cell_changed(self, row, col):
         # Skip if we're just loading data
@@ -123,8 +141,16 @@ class TaskGrid(QtWidgets.QTableWidget):
             for col_idx, value in enumerate(task[1:]):  # Skip the ID
                 item = QtWidgets.QTableWidgetItem(str(value) if value is not None else "")
                 
-                # Special handling for some columns
-                if col_idx == 6:  # Score column
+                # Special styling for feedback cells to indicate they're clickable
+                if col_idx == 8:  # Feedback column
+                    item.setToolTip("Double-click to edit feedback")
+                    item.setBackground(QtGui.QColor(240, 240, 255))  # Light blue background
+                    # Limit display text length
+                    if value and len(value) > 30:
+                        item.setText(f"{value[:30]}...")
+                
+                # Special handling for Score column
+                if col_idx == 7:  # Score column (was 6 before, now 7 because feedback is 8)
                     validator = QtGui.QIntValidator(1, 5)
                     item.setData(QtCore.Qt.UserRole, validator)
                 
@@ -135,14 +161,10 @@ class TaskGrid(QtWidgets.QTableWidget):
             actions_layout = QtWidgets.QHBoxLayout(actions_widget)
             actions_layout.setContentsMargins(2, 2, 2, 2)
             
-            edit_feedback_btn = QtWidgets.QPushButton("Edit")
             delete_btn = QtWidgets.QPushButton("Delete")
-            
-            actions_layout.addWidget(edit_feedback_btn)
             actions_layout.addWidget(delete_btn)
             
             # Connect buttons
-            edit_feedback_btn.clicked.connect(lambda _, tid=task_id: self.edit_feedback(tid))
             delete_btn.clicked.connect(lambda _, tid=task_id: self.delete_task(tid))
             
             self.setCellWidget(row_idx, len(task)-1, actions_widget)
@@ -160,7 +182,17 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Show dialog with markdown editor
         dialog = FeedbackDialog(self, feedback, task_id)
-        dialog.exec()
+        if dialog.exec():
+            # After saving, refresh the displayed text in the table
+            for row_idx in range(self.rowCount()):
+                if self.tasks[row_idx][0] == task_id:
+                    item = self.item(row_idx, 8)  # Feedback column
+                    new_text = dialog.editor.toPlainText()
+                    if len(new_text) > 30:
+                        item.setText(f"{new_text[:30]}...")
+                    else:
+                        item.setText(new_text)
+                    break
     
     def delete_task(self, task_id):
         reply = QtWidgets.QMessageBox.question(

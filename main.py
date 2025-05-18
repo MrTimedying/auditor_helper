@@ -7,6 +7,7 @@ from week_widget import WeekWidget
 from task_grid import TaskGrid
 from analysis_widget import AnalysisWidget
 from db_schema import init_db
+from export_data import export_week_to_csv, export_all_weeks_to_excel
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -21,6 +22,9 @@ class MainWindow(QtWidgets.QMainWindow):
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QtWidgets.QVBoxLayout(central_widget)
+        
+        # Create menu bar
+        self.create_menu_bar()
         
         # Create dock widgets
         self.create_dock_widgets()
@@ -49,6 +53,32 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Initial state
         self.current_week_id = None
+    
+    def create_menu_bar(self):
+        # Create menu bar
+        menu_bar = self.menuBar()
+        
+        # File menu
+        file_menu = menu_bar.addMenu("File")
+        
+        # Export submenu
+        export_menu = file_menu.addMenu("Export")
+        
+        # Export Week action
+        export_week_action = QtGui.QAction("Export Week", self)
+        export_week_action.triggered.connect(self.export_current_week)
+        export_menu.addAction(export_week_action)
+        
+        # Export All action
+        export_all_action = QtGui.QAction("Export All", self)
+        export_all_action.triggered.connect(self.export_all_weeks)
+        export_menu.addAction(export_all_action)
+        
+        # Add exit action
+        exit_action = QtGui.QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addSeparator()
+        file_menu.addAction(exit_action)
     
     def create_dock_widgets(self):
         # Week widget dock
@@ -92,6 +122,53 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def refresh_analysis(self):
         self.analysis_widget.refresh_analysis(self.current_week_id)
+    
+    def export_current_week(self):
+        """Export the current week's tasks to a CSV file"""
+        if self.current_week_id is None:
+            QtWidgets.QMessageBox.warning(
+                self, "No Week Selected", 
+                "Please select a week to export."
+            )
+            return
+        
+        # Open file dialog to get save location
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save CSV File", "", "CSV Files (*.csv);;All Files (*)"
+        )
+        
+        if filename:
+            try:
+                export_week_to_csv(self.current_week_id, filename)
+                QtWidgets.QMessageBox.information(
+                    self, "Export Successful", 
+                    f"Week exported successfully to {filename}"
+                )
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(
+                    self, "Export Failed", 
+                    f"Failed to export week: {str(e)}"
+                )
+    
+    def export_all_weeks(self):
+        """Export all weeks to an Excel file with multiple sheets"""
+        # Open file dialog to get save location
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save Excel File", "", "Excel Files (*.xlsx);;All Files (*)"
+        )
+        
+        if filename:
+            try:
+                export_all_weeks_to_excel(filename)
+                QtWidgets.QMessageBox.information(
+                    self, "Export Successful", 
+                    f"All weeks exported successfully to {filename}"
+                )
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(
+                    self, "Export Failed", 
+                    f"Failed to export all weeks: {str(e)}"
+                )
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

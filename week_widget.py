@@ -1,4 +1,6 @@
 import sqlite3
+import os
+import shutil
 from datetime import datetime
 from PySide6 import QtCore, QtWidgets
 
@@ -76,7 +78,31 @@ class WeekWidget(QtWidgets.QWidget):
                 self.week_list.setCurrentRow(idx)
                 break
     
+    def create_db_backup(self):
+        """Create a backup of the database"""
+        if not os.path.exists(DB_FILE):
+            return
+        
+        # Create backups directory if it doesn't exist
+        backup_dir = os.path.join(os.path.dirname(os.path.abspath(DB_FILE)), "backups")
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Create a backup with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        backup_file = os.path.join(backup_dir, f"tasks_backup_{timestamp}.db")
+        
+        try:
+            shutil.copy2(DB_FILE, backup_file)
+            print(f"Created database backup: {backup_file}")
+            return backup_file
+        except Exception as e:
+            print(f"Failed to create backup: {e}")
+            return None
+    
     def add_week(self):
+        # Create a database backup before adding a new week
+        backup_file = self.create_db_backup()
+        
         start_date = self.start_date.date().toString("dd/MM/yyyy")
         end_date = self.end_date.date().toString("dd/MM/yyyy")
         week_label = f"{start_date} - {end_date}"
@@ -86,9 +112,21 @@ class WeekWidget(QtWidgets.QWidget):
         try:
             c.execute("INSERT INTO weeks (week_label) VALUES (?)", (week_label,))
             conn.commit()
+            
+            # Show confirmation message with backup info
+            if backup_file:
+                QtWidgets.QMessageBox.information(
+                    self, "Week Added", 
+                    f"Week added successfully.\nDatabase backup created at:\n{backup_file}"
+                )
+            
         except sqlite3.IntegrityError:
-            pass  # Week already exists
-        conn.close()
+            QtWidgets.QMessageBox.warning(
+                self, "Duplicate Week", 
+                f"A week with the label '{week_label}' already exists."
+            )
+        finally:
+            conn.close()
         
         self.refresh_weeks()
         for i in range(self.week_list.count()):
@@ -99,17 +137,35 @@ class WeekWidget(QtWidgets.QWidget):
     def delete_week(self):
         week_id, _ = self.current_week_id()
         if week_id:
-            conn = sqlite3.connect(DB_FILE)
-            c = conn.cursor()
-            c.execute("DELETE FROM weeks WHERE id=?", (week_id,))
-            conn.commit()
-            conn.close()
+            reply = QtWidgets.QMessageBox.question(
+                self, 'Confirm Deletion',
+                "Are you sure you want to delete this week and all its tasks?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.No
+            )
             
-            self.refresh_weeks()
-            if self.week_list.count() > 0:
-                self.week_list.setCurrentRow(0)
-            else:
-                self.weekChanged.emit(None, None)
+            if reply == QtWidgets.QMessageBox.Yes:
+                # Create a backup before deleting
+                backup_file = self.create_db_backup()
+                
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("DELETE FROM weeks WHERE id=?", (week_id,))
+                conn.commit()
+                conn.close()
+                
+                # Show confirmation with backup info
+                if backup_file:
+                    QtWidgets.QMessageBox.information(
+                        self, "Week Deleted", 
+                        f"Week deleted successfully.\nDatabase backup created at:\n{backup_file}"
+                    )
+                
+                self.refresh_weeks()
+                if self.week_list.count() > 0:
+                    self.week_list.setCurrentRow(0)
+                else:
+                    self.weekChanged.emit(None, None)
     
     def get_weeks(self):
         conn = sqlite3.connect(DB_FILE)
