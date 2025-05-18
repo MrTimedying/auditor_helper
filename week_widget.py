@@ -1,10 +1,15 @@
 import sqlite3
 import os
 import shutil
+import sys
 from datetime import datetime
 from PySide6 import QtCore, QtWidgets
 
 DB_FILE = "tasks.db"
+
+def is_production():
+    """Check if running in production (bundled) environment"""
+    return getattr(sys, 'frozen', False)
 
 class WeekWidget(QtWidgets.QWidget):
     weekChanged = QtCore.Signal(int, str)
@@ -79,9 +84,10 @@ class WeekWidget(QtWidgets.QWidget):
                 break
     
     def create_db_backup(self):
-        """Create a backup of the database"""
-        if not os.path.exists(DB_FILE):
-            return
+        """Create a backup of the database only in production environment"""
+        # Only create backups in production environment
+        if not is_production() or not os.path.exists(DB_FILE):
+            return None
         
         # Create backups directory if it doesn't exist
         backup_dir = os.path.join(os.path.dirname(os.path.abspath(DB_FILE)), "backups")
@@ -100,8 +106,8 @@ class WeekWidget(QtWidgets.QWidget):
             return None
     
     def add_week(self):
-        # Create a database backup before adding a new week
-        backup_file = self.create_db_backup()
+        # Create a database backup before adding a new week (only in production)
+        self.create_db_backup()
         
         start_date = self.start_date.date().toString("dd/MM/yyyy")
         end_date = self.end_date.date().toString("dd/MM/yyyy")
@@ -112,14 +118,6 @@ class WeekWidget(QtWidgets.QWidget):
         try:
             c.execute("INSERT INTO weeks (week_label) VALUES (?)", (week_label,))
             conn.commit()
-            
-            # Show confirmation message with backup info
-            if backup_file:
-                QtWidgets.QMessageBox.information(
-                    self, "Week Added", 
-                    f"Week added successfully.\nDatabase backup created at:\n{backup_file}"
-                )
-            
         except sqlite3.IntegrityError:
             QtWidgets.QMessageBox.warning(
                 self, "Duplicate Week", 
@@ -145,21 +143,14 @@ class WeekWidget(QtWidgets.QWidget):
             )
             
             if reply == QtWidgets.QMessageBox.Yes:
-                # Create a backup before deleting
-                backup_file = self.create_db_backup()
+                # Create a backup before deleting (only in production)
+                self.create_db_backup()
                 
                 conn = sqlite3.connect(DB_FILE)
                 c = conn.cursor()
                 c.execute("DELETE FROM weeks WHERE id=?", (week_id,))
                 conn.commit()
                 conn.close()
-                
-                # Show confirmation with backup info
-                if backup_file:
-                    QtWidgets.QMessageBox.information(
-                        self, "Week Deleted", 
-                        f"Week deleted successfully.\nDatabase backup created at:\n{backup_file}"
-                    )
                 
                 self.refresh_weeks()
                 if self.week_list.count() > 0:
