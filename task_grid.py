@@ -153,11 +153,14 @@ class TaskGrid(QtWidgets.QTableWidget):
                 
                 # Special styling for feedback cells to indicate they're clickable
                 if col_idx == 8:  # Feedback column
-                    item.setToolTip("Double-click to edit feedback")
-                    item.setBackground(QtGui.QColor(240, 240, 255))  # Light blue background
-                    # Limit display text length
-                    if value and len(value) > 30:
-                        item.setText(f"{value[:30]}...")
+                    item.setToolTip(str(value) if value is not None else "") # Use full text for tooltip
+                    # Remove the light blue background to match other cells
+                    # item.setBackground(QtGui.QColor(240, 240, 255))
+                    
+                    # Remove truncation logic
+                    # if value and len(value) > 30:
+                    #     item.setText(f"{value[:30]}...")
+                        
                     # Make feedback non-editable directly in the grid
                     item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 
@@ -198,16 +201,17 @@ class TaskGrid(QtWidgets.QTableWidget):
         dialog = FeedbackDialog(self, feedback, task_id)
         if dialog.exec():
             # After saving, refresh the displayed text in the table
+            # The database is updated in the FeedbackDialog save_feedback method
+            
+            # Find the row for the updated task
             for row_idx in range(self.rowCount()):
                 if row_idx < len(self.tasks) and self.tasks[row_idx][0] == task_id:
                     item = self.item(row_idx, 8)  # Feedback column
                     if item:
                         new_text = dialog.editor.toPlainText()
-                        if len(new_text) > 30:
-                            item.setText(f"{new_text[:30]}...")
-                        else:
-                            item.setText(new_text)
-                        break
+                        item.setText(new_text) # Set the full text
+                        item.setToolTip(new_text) # Update the tooltip as well
+                    break
     
     def delete_task(self, task_id):
         reply = QtWidgets.QMessageBox.question(
