@@ -8,6 +8,7 @@ class TaskGrid(QtWidgets.QTableWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.current_week_id = None
+        self.main_window = parent  # Store direct reference to main window
         
         # Setup table structure
         columns = [
@@ -20,8 +21,9 @@ class TaskGrid(QtWidgets.QTableWidget):
         self.horizontalHeader().setStretchLastSection(True)
         self.verticalHeader().setVisible(False)
         
-        # Set edit triggers to handle feedback cells specially
-        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        # Allow editing by double click, but handle feedback cells specially
+        self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked | 
+                             QtWidgets.QAbstractItemView.EditKeyPressed)
         self.cellDoubleClicked.connect(self.handle_cell_double_clicked)
         
         # Set column widths
@@ -38,6 +40,9 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Connect signals
         self.cellChanged.connect(self.handle_cell_changed)
+        
+        # Flag to prevent recursive cell change handling
+        self.is_loading = False
     
     def handle_cell_double_clicked(self, row, col):
         # Skip if we don't have task data
@@ -46,19 +51,18 @@ class TaskGrid(QtWidgets.QTableWidget):
             
         task_id = self.tasks[row][0]
         
-        # Handle feedback cell (col 8)
+        # Handle feedback cell (col 8) - open dialog instead of inline edit
         if col == 8:
             self.edit_feedback(task_id)
             return
         
-        # For other cells, make them editable
-        item = self.item(row, col)
-        if item:
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+        # For last column (actions), don't make it editable
+        if col == self.columnCount() - 1:
+            return
     
     def handle_cell_changed(self, row, col):
-        # Skip if we're just loading data
-        if not hasattr(self, 'tasks') or row >= len(self.tasks):
+        # Skip if we're just loading data or it's the actions column
+        if self.is_loading or not hasattr(self, 'tasks') or row >= len(self.tasks) or col >= self.columnCount() - 1:
             return
             
         task_id = self.tasks[row][0]
@@ -100,8 +104,12 @@ class TaskGrid(QtWidgets.QTableWidget):
         conn.commit()
         conn.close()
         
-        # Emit signal to notify analysis widget to refresh
-        self.parent().refresh_analysis()
+        # Use direct reference to main window instead of parent()
+        try:
+            if hasattr(self.main_window, 'refresh_analysis'):
+                self.main_window.refresh_analysis()
+        except Exception as e:
+            print(f"Error updating analysis: {e}")
     
     def is_valid_time_format(self, time_str):
         try:
@@ -116,10 +124,12 @@ class TaskGrid(QtWidgets.QTableWidget):
             return False
     
     def refresh_tasks(self, week_id):
+        self.is_loading = True  # Set loading flag to prevent unwanted signal handling
         self.current_week_id = week_id
         self.setRowCount(0)
         
         if week_id is None:
+            self.is_loading = False
             return
             
         conn = sqlite3.connect(DB_FILE)
@@ -148,6 +158,8 @@ class TaskGrid(QtWidgets.QTableWidget):
                     # Limit display text length
                     if value and len(value) > 30:
                         item.setText(f"{value[:30]}...")
+                    # Make feedback non-editable directly in the grid
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 
                 # Special handling for Score column
                 if col_idx == 7:  # Score column (was 6 before, now 7 because feedback is 8)
@@ -171,6 +183,8 @@ class TaskGrid(QtWidgets.QTableWidget):
             
             # Set row height
             self.setRowHeight(row_idx, 30)
+        
+        self.is_loading = False  # Reset loading flag
     
     def edit_feedback(self, task_id):
         # Get current feedback text
@@ -185,14 +199,15 @@ class TaskGrid(QtWidgets.QTableWidget):
         if dialog.exec():
             # After saving, refresh the displayed text in the table
             for row_idx in range(self.rowCount()):
-                if self.tasks[row_idx][0] == task_id:
+                if row_idx < len(self.tasks) and self.tasks[row_idx][0] == task_id:
                     item = self.item(row_idx, 8)  # Feedback column
-                    new_text = dialog.editor.toPlainText()
-                    if len(new_text) > 30:
-                        item.setText(f"{new_text[:30]}...")
-                    else:
-                        item.setText(new_text)
-                    break
+                    if item:
+                        new_text = dialog.editor.toPlainText()
+                        if len(new_text) > 30:
+                            item.setText(f"{new_text[:30]}...")
+                        else:
+                            item.setText(new_text)
+                        break
     
     def delete_task(self, task_id):
         reply = QtWidgets.QMessageBox.question(
@@ -211,7 +226,13 @@ class TaskGrid(QtWidgets.QTableWidget):
             
             # Refresh the grid and analysis
             self.refresh_tasks(self.current_week_id)
-            self.parent().refresh_analysis()
+            
+            # Use direct reference to main window
+            try:
+                if hasattr(self.main_window, 'refresh_analysis'):
+                    self.main_window.refresh_analysis()
+            except Exception as e:
+                print(f"Error updating analysis after deletion: {e}")
     
     def add_task(self, week_id):
         if week_id is None:
