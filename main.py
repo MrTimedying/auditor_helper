@@ -101,71 +101,187 @@ class MainWindow(QtWidgets.QMainWindow):
         app = QtWidgets.QApplication.instance()
         
         if self.dark_mode:
-            # Dark mode palette
+            # Dark mode palette based on agent.json
             palette = QtGui.QPalette()
-            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(255, 255, 255))
-            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
-            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.Text, QtGui.QColor(255, 255, 255))
-            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
-            palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(255, 255, 255))
-            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
-            palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 255, 255))
-            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(0x38, 0x37, 0x35))  # #383735
+            palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
+            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(0x38, 0x37, 0x35))  # #383735
+            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(0x2a, 0x29, 0x27))  # Slightly darker than base
+            palette.setColor(QtGui.QPalette.Text, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
+            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(0x38, 0x37, 0x35))  # #383735
+            palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
+            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(0x1a, 0x19, 0x18))  # #1a1918 (title bar color)
+            palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
+            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(0x8a, 0x89, 0x87))  # Lighter variant of base
             
             # For Qt 5.12+ - handle PlaceholderText
-            palette.setColor(QtGui.QPalette.PlaceholderText, QtGui.QColor(100, 100, 100))
+            palette.setColor(QtGui.QPalette.PlaceholderText, QtGui.QColor(0xb0, 0xb0, 0xb0))  # Light gray
             
             # Additional dark mode styles
             app.setStyleSheet("""
                 QToolTip { 
-                    color: #ffffff; 
-                    background-color: #2a2a2a; 
-                    border: 1px solid #767676; 
+                    color: #f1f1f1; 
+                    background-color: #1a1918; 
+                    border: none; 
                 }
                 QTableView {
-                    gridline-color: #6c6c6c;
+                    gridline-color: #4a4a48;
+                    background-color: #383735;
                 }
                 QHeaderView::section { 
-                    background-color: #3a3a3a; 
-                    color: white; 
-                    border: 0.5px solid #6c6c6c;
+                    background-color: #1a1918; 
+                    color: #f1f1f1; 
+                    border: none;
                 }
                 QTabBar::tab {
-                    background: #3a3a3a;
+                    background: #1a1918;
                     color: #b1b1b1;
-                    border: 1px solid #4a4a4a;
+                    border: none;
                     padding: 5px;
                 }
                 QTabBar::tab:selected {
-                    background: #2a82da;
-                    color: white;
+                    background: #383735;
+                    color: #f1f1f1;
+                }
+                QFrame, QWidget {
+                    background-color: #383735;
+                    color: #f1f1f1;
+                }
+                QDialog, QMainWindow {
+                    background-color: #383735;
+                }
+                QPushButton {
+                    background-color: #1a1918;
+                    color: #f1f1f1;
+                    border: none;
+                    padding: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #2a2928;
+                }
+                QPushButton:pressed {
+                    background-color: #3a3938;
+                }
+                QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit {
+                    background-color: #2a2928;
+                    color: #f1f1f1;
+                    border: none;
+                    padding: 3px;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: #2a2928;
+                    color: #f1f1f1;
+                    selection-background-color: #3a3938;
+                }
+                QScrollBar {
+                    background-color: #383735;
+                }
+                QScrollBar::handle {
+                    background-color: #1a1918;
+                }
+                QScrollBar::handle:hover {
+                    background-color: #2a2928;
+                }
+                QListWidget {
+                    background-color: #383735;
+                    color: #f1f1f1;
+                    border: none;
+                }
+                QListWidget::item:selected {
+                    background-color: #1a1918;
+                    color: #f1f1f1;
                 }
             """)
         else:
-            # Light mode - use default Qt palette
+            # Light mode palette based on agent.json
             palette = QtGui.QPalette()
+            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(0xf5, 0xf1, 0xe6))  # #f5f1e6
+            palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(0, 0, 0))  # #000
+            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(0xf5, 0xf1, 0xe6))  # #f5f1e6
+            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(0xf0, 0xec, 0xe1))  # Slightly darker than base
+            palette.setColor(QtGui.QPalette.Text, QtGui.QColor(0, 0, 0))  # #000
+            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(0xf5, 0xf1, 0xe6))  # #f5f1e6
+            palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(0, 0, 0))  # #000
+            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(0xf5, 0xee, 0xdc))  # #f5eedc (title bar color)
+            palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(0, 0, 0))  # #000
+            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(0xd5, 0xd1, 0xc6))  # Darker variant of base
+            
+            # For Qt 5.12+ - handle PlaceholderText
+            palette.setColor(QtGui.QPalette.PlaceholderText, QtGui.QColor(0x80, 0x80, 0x80))  # Medium gray
             
             # Light mode additional styles
             app.setStyleSheet("""
+                QToolTip { 
+                    color: #000; 
+                    background-color: #f5eedc; 
+                    border: none; 
+                }
                 QTableView {
-                    gridline-color: #f0f0f0;
+                    gridline-color: #e5e1d6;
+                    background-color: #f5f1e6;
                 }
                 QHeaderView::section { 
-                    background-color: #f0f0f0; 
-                    color: black; 
-                    border: 0.5px solid #f0f0f0;
+                    background-color: #f5eedc; 
+                    color: #000; 
+                    border: none;
                 }
                 QTabBar::tab {
-                    background: #f0f0f0;
+                    background: #f5eedc;
                     color: #333333;
-                    border: 1px solid #f0f0f0;
+                    border: none;
                     padding: 5px;
                 }
                 QTabBar::tab:selected {
-                    background: #f0f0f0;
-                    color: white;
+                    background: #f5f1e6;
+                    color: #000;
+                }
+                QFrame, QWidget {
+                    background-color: #f5f1e6;
+                    color: #000;
+                }
+                QDialog, QMainWindow {
+                    background-color: #f5f1e6;
+                }
+                QPushButton {
+                    background-color: #f5eedc;
+                    color: #000;
+                    border: none;
+                    padding: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #e5decc;
+                }
+                QPushButton:pressed {
+                    background-color: #d5cebc;
+                }
+                QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit {
+                    background-color: #ffffff;
+                    color: #000;
+                    border: none;
+                    padding: 3px;
+                }
+                QComboBox QAbstractItemView {
+                    background-color: #ffffff;
+                    color: #000;
+                    selection-background-color: #f5eedc;
+                }
+                QScrollBar {
+                    background-color: #f5f1e6;
+                }
+                QScrollBar::handle {
+                    background-color: #f5eedc;
+                }
+                QScrollBar::handle:hover {
+                    background-color: #e5decc;
+                }
+                QListWidget {
+                    background-color: #f5f1e6;
+                    color: #000;
+                    border: none;
+                }
+                QListWidget::item:selected {
+                    background-color: #f5eedc;
+                    color: #000;
                 }
             """)
             

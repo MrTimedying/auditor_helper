@@ -73,18 +73,20 @@ class ToasterWidget(QtWidgets.QWidget):
         main_window = self.parent
         is_dark_mode = hasattr(main_window, 'dark_mode') and main_window.dark_mode
         
-        # Set border color based on theme instead of toast type
+        # Set colors based on theme from agent.json
         if is_dark_mode:
-            border_color = "#555555"  # Dark gray border for dark mode
-            bg_color = "#333333"      # Dark background
+            bg_color = "#383735"      # Dark background from agent.json
+            text_color = "#f1f1f1"    # Text color from agent.json
+            border_color = "#1a1918"  # Title bar color from agent.json
         else:
-            border_color = "#cccccc"  # Light gray border for light mode
-            bg_color = "#ffffff"      # White background
+            bg_color = "#f5f1e6"      # Light background from agent.json
+            text_color = "#000"       # Text color from agent.json
+            border_color = "#f5eedc"  # Title bar color from agent.json
             
         self.frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {bg_color};
-                border: 1px solid {border_color};
+                border: none;
                 border-radius: 8px;
             }}
         """)
@@ -94,21 +96,21 @@ class ToasterWidget(QtWidgets.QWidget):
         # Title and close button row
         header_layout = QtWidgets.QHBoxLayout()
         title_label = QtWidgets.QLabel(f"{icon} {self.title}" if self.title else icon)
-        title_label.setStyleSheet(f"color: {'white' if is_dark_mode else 'black'}; font-weight: bold;")
+        title_label.setStyleSheet(f"color: {text_color}; font-weight: bold;")
         header_layout.addWidget(title_label)
         
         if not self.require_action:
             close_button = QtWidgets.QPushButton("×")
             close_button.setStyleSheet(f"""
                 QPushButton {{
-                    color: {'white' if is_dark_mode else 'black'};
+                    color: {text_color};
                     background-color: transparent;
                     border: none;
                     font-size: 16px;
                     font-weight: bold;
                 }}
                 QPushButton:hover {{
-                    color: {'#CCC' if is_dark_mode else '#555'};
+                    color: {'#aaa' if is_dark_mode else '#555'};
                 }}
             """)
             close_button.setMaximumWidth(20)
@@ -119,7 +121,7 @@ class ToasterWidget(QtWidgets.QWidget):
         
         # Message
         message_label = QtWidgets.QLabel(self.message)
-        message_label.setStyleSheet(f"color: {'white' if is_dark_mode else 'black'};")
+        message_label.setStyleSheet(f"color: {text_color};")
         message_label.setWordWrap(True)
         frame_layout.addWidget(message_label)
         
@@ -127,32 +129,40 @@ class ToasterWidget(QtWidgets.QWidget):
         if self.require_action:
             buttons_layout = QtWidgets.QHBoxLayout()
             
+            # Use title bar color for OK button with slightly lighter hover state
             ok_button = QtWidgets.QPushButton("OK")
+            ok_button_bg = border_color
+            ok_button_hover = '#2a2928' if is_dark_mode else '#e5decc'  # Slightly lighter/darker
+            
             ok_button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {color};
-                    color: white;
+                    background-color: {ok_button_bg};
+                    color: {text_color};
                     border: none;
                     padding: 5px 15px;
                     border-radius: 4px;
                 }}
                 QPushButton:hover {{
-                    background-color: {color}CC;
+                    background-color: {ok_button_hover};
                 }}
             """)
             ok_button.clicked.connect(self.accept)
             
+            # Use a slightly darker/lighter variant of the background for cancel button
+            cancel_button_bg = '#2a2928' if is_dark_mode else '#e5decc'
+            cancel_button_hover = '#3a3938' if is_dark_mode else '#d5cebc'
+            
             cancel_button = QtWidgets.QPushButton("Cancel")
             cancel_button.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: {'#555' if is_dark_mode else '#e0e0e0'};
-                    color: {'white' if is_dark_mode else 'black'};
+                    background-color: {cancel_button_bg};
+                    color: {text_color};
                     border: none;
                     padding: 5px 15px;
                     border-radius: 4px;
                 }}
                 QPushButton:hover {{
-                    background-color: {'#666' if is_dark_mode else '#d0d0d0'};
+                    background-color: {cancel_button_hover};
                 }}
             """)
             cancel_button.clicked.connect(self.reject)
