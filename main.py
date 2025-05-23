@@ -8,6 +8,7 @@ from task_grid import TaskGrid
 from analysis_widget import AnalysisWidget
 from db_schema import init_db
 from export_data import export_week_to_csv, export_all_weeks_to_excel
+from import_data import main_import
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -87,6 +88,14 @@ class MainWindow(QtWidgets.QMainWindow):
         export_all_action = QtGui.QAction("Export All", self)
         export_all_action.triggered.connect(self.export_all_weeks)
         export_menu.addAction(export_all_action)
+        
+        # Import submenu
+        import_menu = file_menu.addMenu("Import")
+        
+        # Import CSV/Excel action
+        import_action = QtGui.QAction("Import CSV/Excel", self)
+        import_action.triggered.connect(self.import_data)
+        import_menu.addAction(import_action)
         
         # Add exit action
         exit_action = QtGui.QAction("Exit", self)
@@ -198,6 +207,44 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.critical(
                     self, "Export Failed", 
                     f"Failed to export all weeks: {str(e)}"
+                )
+    
+    def import_data(self):
+        """Import data from a CSV or Excel file"""
+        # Open file dialog to get file to import
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open File for Import", "", "Data Files (*.csv *.xlsx);;CSV Files (*.csv);;Excel Files (*.xlsx);;All Files (*)"
+        )
+        
+        if filename:
+            try:
+                # Show a progress dialog
+                progress_dialog = QtWidgets.QProgressDialog("Importing data...", "Cancel", 0, 0, self)
+                progress_dialog.setWindowTitle("Import Progress")
+                progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+                progress_dialog.show()
+                QtWidgets.QApplication.processEvents()
+                
+                # Execute the import
+                main_import(filename)
+                
+                # Close the progress dialog
+                progress_dialog.close()
+                
+                # Refresh UI
+                self.week_widget.refresh_weeks()
+                if self.current_week_id:
+                    self.task_grid.refresh_tasks(self.current_week_id)
+                    self.refresh_analysis()
+                
+                QtWidgets.QMessageBox.information(
+                    self, "Import Complete", 
+                    f"Data import from {filename} complete."
+                )
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(
+                    self, "Import Failed", 
+                    f"Failed to import data: {str(e)}"
                 )
 
 if __name__ == "__main__":
