@@ -4,6 +4,24 @@ from datetime import datetime
 
 DB_FILE = "tasks.db"
 
+class TaskGridItem(QtWidgets.QTableWidgetItem):
+    """Custom table widget item that supports empty cell highlighting"""
+    def __init__(self, text="", is_empty=False, init_value=False):
+        super().__init__(text)
+        self.is_empty = is_empty
+        self.is_init_value = init_value
+        self.needs_highlight = is_empty or init_value
+        
+        # Set placeholder style for empty cells
+        if self.needs_highlight:
+            self._apply_empty_style()
+    
+    def _apply_empty_style(self):
+        """Apply style for empty or init value cells"""
+        # The actual style will be set in the TaskGrid paint event
+        # This method exists for future extensibility
+        pass
+
 class TaskGrid(QtWidgets.QTableWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -46,6 +64,9 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Flag to prevent recursive cell change handling
         self.is_loading = False
+        
+        # Custom item delegate for cell highlighting
+        self.setItemDelegate(TaskGridItemDelegate(self))
     
     def handle_cell_double_clicked(self, row, col):
         # Skip if we don't have task data
@@ -84,7 +105,8 @@ class TaskGrid(QtWidgets.QTableWidget):
             return
             
         task_id = self.tasks[row][0]
-        cell_value = self.item(row, col).text()
+        cell_item = self.item(row, col)
+        cell_value = cell_item.text()
         
         # Determine which field to update based on column
         field_names = [
@@ -96,6 +118,21 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         if col < len(field_names) and field_names[col]:
             field_name = field_names[col]
+            
+            # Update cell highlighting state
+            if isinstance(cell_item, TaskGridItem):
+                # Check if the cell is now filled and was previously empty
+                if cell_item.needs_highlight and cell_value.strip():
+                    cell_item.needs_highlight = False
+                    cell_item.is_empty = False
+                    cell_item.is_init_value = False
+                # Check if the cell is now empty
+                elif not cell_value.strip():
+                    cell_item.needs_highlight = True
+                    cell_item.is_empty = True
+                    cell_item.is_init_value = False
+            
+            # Update the database
             self.update_task_field(task_id, field_name, cell_value)
     
     def update_task_field(self, task_id, field_name, value):
@@ -142,6 +179,18 @@ class TaskGrid(QtWidgets.QTableWidget):
         except ValueError:
             return False
     
+    def is_init_value(self, col_idx, value):
+        """Check if a value is an initialization value that should be highlighted"""
+        if col_idx == 2 or col_idx == 6:  # Duration or Time Limit
+            return value == "00:00:00"
+        elif col_idx == 8:  # Score
+            return value == "0"
+        return False
+    
+    def is_empty_value(self, value):
+        """Check if a value is empty"""
+        return not value or not str(value).strip()
+    
     def refresh_tasks(self, week_id):
         self.is_loading = True  # Set loading flag to prevent unwanted signal handling
         self.current_week_id = week_id
@@ -175,7 +224,15 @@ class TaskGrid(QtWidgets.QTableWidget):
             
             # Populate cells
             for col_idx, value in enumerate(task[1:]):  # Skip the ID
-                item = QtWidgets.QTableWidgetItem(str(value) if value is not None else "")
+                # Process value
+                display_value = str(value) if value is not None else ""
+                
+                # Check if this is an empty value or initialization value
+                is_empty = self.is_empty_value(display_value)
+                is_init = self.is_init_value(col_idx, display_value)
+                
+                # Create the custom item
+                item = TaskGridItem(display_value, is_empty=is_empty, init_value=is_init)
                 
                 # Special styling for feedback cells to indicate they're clickable
                 if col_idx == 8:  # Feedback column (9 in the grid with checkbox)
@@ -222,41 +279,35 @@ class TaskGrid(QtWidgets.QTableWidget):
                         new_text = dialog.editor.toPlainText()
                         item.setText(new_text) # Set the full text
                         item.setToolTip(new_text) # Update the tooltip as well
+                        
+                        # Update highlighting state if needed
+                        if isinstance(item, TaskGridItem):
+                            item.is_empty = not new_text.strip()
+                            item.needs_highlight = item.is_empty
                     break
     
     def delete_selected_tasks(self):
         if not self.selected_tasks:
             return
             
-        count = len(self.selected_tasks)
-        message = f"Are you sure you want to delete {count} {'task' if count == 1 else 'tasks'}?"
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
         
-        reply = QtWidgets.QMessageBox.question(
-            self, 'Confirm Deletion',
-            message,
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-            QtWidgets.QMessageBox.No
-        )
+        for task_id in self.selected_tasks:
+            c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+            
+        conn.commit()
+        conn.close()
         
-        if reply == QtWidgets.QMessageBox.Yes:
-            conn = sqlite3.connect(DB_FILE)
-            c = conn.cursor()
-            
-            for task_id in self.selected_tasks:
-                c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
-                
-            conn.commit()
-            conn.close()
-            
-            # Refresh the grid and analysis
-            self.refresh_tasks(self.current_week_id)
-            
-            # Use direct reference to main window
-            try:
-                if hasattr(self.main_window, 'refresh_analysis'):
-                    self.main_window.refresh_analysis()
-            except Exception as e:
-                print(f"Error updating analysis after deletion: {e}")
+        # Refresh the grid and analysis
+        self.refresh_tasks(self.current_week_id)
+        
+        # Use direct reference to main window
+        try:
+            if hasattr(self.main_window, 'refresh_analysis'):
+                self.main_window.refresh_analysis()
+        except Exception as e:
+            print(f"Error updating analysis after deletion: {e}")
     
     def delete_task(self, task_id):
         # Legacy method kept for compatibility
@@ -284,6 +335,59 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Refresh the grid
         self.refresh_tasks(week_id)
+
+
+class TaskGridItemDelegate(QtWidgets.QStyledItemDelegate):
+    """Custom delegate to draw highlighted borders around empty cells"""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+    
+    def paint(self, painter, option, index):
+        # Extract the item from the model
+        model = index.model()
+        item = model.itemFromIndex(index) if hasattr(model, 'itemFromIndex') else None
+        
+        # Check if it's our custom item and needs highlighting
+        if isinstance(item, TaskGridItem) and item.needs_highlight:
+            # Save painter state
+            painter.save()
+            
+            # Fill the background (respects selection state)
+            if option.state & QtWidgets.QStyle.State_Selected:
+                painter.fillRect(option.rect, option.palette.highlight())
+            else:
+                painter.fillRect(option.rect, option.palette.base())
+            
+            # Draw the red border with glow effect
+            pen = QtGui.QPen(QtGui.QColor(255, 100, 100, 180))
+            pen.setWidth(2)
+            painter.setPen(pen)
+            
+            # Draw inner rectangle (accounting for pen width)
+            rect = option.rect.adjusted(2, 2, -2, -2)
+            painter.drawRect(rect)
+            
+            # For a subtle glow effect, draw additional rectangles with decreasing opacity
+            for i in range(1, 3):
+                glow_rect = option.rect.adjusted(i, i, -i, -i)
+                glow_pen = QtGui.QPen(QtGui.QColor(255, 100, 100, 80 - (i * 20)))
+                glow_pen.setWidth(1)
+                painter.setPen(glow_pen)
+                painter.drawRect(glow_rect)
+            
+            # Draw the text
+            painter.setPen(QtGui.QPen(option.palette.text().color()))
+            text = item.text()
+            painter.drawText(option.rect.adjusted(4, 4, -4, -4), 
+                            QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter, 
+                            text)
+            
+            # Restore painter
+            painter.restore()
+        else:
+            # Use default painting for normal cells
+            super().paint(painter, option, index)
+
 
 class FeedbackDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, feedback="", task_id=None):

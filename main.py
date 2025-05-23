@@ -9,6 +9,7 @@ from analysis_widget import AnalysisWidget
 from db_schema import init_db
 from export_data import export_week_to_csv, export_all_weeks_to_excel
 from import_data import main_import
+from toaster import ToasterManager
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -19,10 +20,33 @@ class MainWindow(QtWidgets.QMainWindow):
         # Initialize the database
         init_db()
         
+        # Initialize toaster manager
+        self.toaster_manager = ToasterManager(self)
+        
+        # Set default dark mode
+        self.dark_mode = True
+        
         # Create central widget and main layout
         central_widget = QtWidgets.QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QtWidgets.QVBoxLayout(central_widget)
+        
+        # Create top bar with theme toggle button
+        top_bar = QtWidgets.QWidget()
+        top_bar_layout = QtWidgets.QHBoxLayout(top_bar)
+        top_bar_layout.setContentsMargins(5, 5, 5, 5)
+        
+        # Add spacer to push button to the right
+        top_bar_layout.addStretch()
+        
+        # Theme toggle button
+        self.theme_btn = QtWidgets.QPushButton("☀️ Light Mode")
+        self.theme_btn.setToolTip("Switch between dark and light mode")
+        self.theme_btn.clicked.connect(self.toggle_theme)
+        self.update_theme_button()
+        top_bar_layout.addWidget(self.theme_btn)
+        
+        main_layout.addWidget(top_bar)
         
         # Create menu bar
         self.create_menu_bar()
@@ -68,6 +92,108 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Initial state
         self.current_week_id = None
+        
+        # Apply theme now that all UI elements are created
+        self.apply_theme()
+    
+    def apply_theme(self):
+        """Apply the current theme (dark or light) to the application"""
+        app = QtWidgets.QApplication.instance()
+        
+        if self.dark_mode:
+            # Dark mode palette
+            palette = QtGui.QPalette()
+            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(255, 255, 255))
+            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
+            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.Text, QtGui.QColor(255, 255, 255))
+            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+            palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(255, 255, 255))
+            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+            palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 255, 255))
+            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+            
+            # For Qt 5.12+ - handle PlaceholderText
+            palette.setColor(QtGui.QPalette.PlaceholderText, QtGui.QColor(100, 100, 100))
+            
+            # Additional dark mode styles
+            app.setStyleSheet("""
+                QToolTip { 
+                    color: #ffffff; 
+                    background-color: #2a2a2a; 
+                    border: 1px solid #767676; 
+                }
+                QTableView {
+                    gridline-color: #6c6c6c;
+                }
+                QHeaderView::section { 
+                    background-color: #3a3a3a; 
+                    color: white; 
+                    border: 0.5px solid #6c6c6c;
+                }
+                QTabBar::tab {
+                    background: #3a3a3a;
+                    color: #b1b1b1;
+                    border: 1px solid #4a4a4a;
+                    padding: 5px;
+                }
+                QTabBar::tab:selected {
+                    background: #2a82da;
+                    color: white;
+                }
+            """)
+        else:
+            # Light mode - use default Qt palette
+            palette = QtGui.QPalette()
+            
+            # Light mode additional styles
+            app.setStyleSheet("""
+                QTableView {
+                    gridline-color: #f0f0f0;
+                }
+                QHeaderView::section { 
+                    background-color: #f0f0f0; 
+                    color: black; 
+                    border: 0.5px solid #f0f0f0;
+                }
+                QTabBar::tab {
+                    background: #f0f0f0;
+                    color: #333333;
+                    border: 1px solid #f0f0f0;
+                    padding: 5px;
+                }
+                QTabBar::tab:selected {
+                    background: #f0f0f0;
+                    color: white;
+                }
+            """)
+            
+        app.setPalette(palette)
+        
+        # Keep the delete button style consistent regardless of theme
+        self.delete_rows_btn.setStyleSheet(
+            "QPushButton { background-color: #ff6b6b; color: white; }"
+            "QPushButton:hover { background-color: #ff4747; }"
+            "QPushButton:disabled { background-color: #ffb1b1; color: #f0f0f0; }"
+        )
+
+    def toggle_theme(self):
+        """Toggle between dark and light mode"""
+        self.dark_mode = not self.dark_mode
+        self.apply_theme()
+        self.update_theme_button()
+        
+        # Show a notification that theme changed
+        theme_name = "Dark" if self.dark_mode else "Light"
+        self.toaster_manager.show_info(f"{theme_name} mode activated", "Theme Changed", 3000)
+
+    def update_theme_button(self):
+        """Update the theme button text based on current mode"""
+        if self.dark_mode:
+            self.theme_btn.setText("☀️ Light Mode")
+        else:
+            self.theme_btn.setText("🌙 Dark Mode")
     
     def create_menu_bar(self):
         # Create menu bar
@@ -106,6 +232,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_dock_widgets(self):
         # Week widget dock
         self.week_widget = WeekWidget()
+        self.week_widget.main_window = self  # Set the main window reference
         week_dock = QtWidgets.QDockWidget("Weeks", self)
         week_dock.setWidget(self.week_widget)
         week_dock.setAllowedAreas(
@@ -142,9 +269,22 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.current_week_id is not None:
             self.task_grid.add_task(self.current_week_id)
             self.refresh_analysis()
+            # Show toaster notification
+            self.toaster_manager.show_info("New task added successfully", "Task Added", 3000)
     
     def delete_selected_tasks(self):
-        self.task_grid.delete_selected_tasks()
+        # Use a toaster with confirmation instead of a dialog
+        count = len(self.task_grid.selected_tasks)
+        if count > 0:
+            message = f"Are you sure you want to delete {count} {'task' if count == 1 else 'tasks'}?"
+            self.toaster_manager.show_question(message, "Confirm Deletion", self.confirm_delete_tasks)
+    
+    def confirm_delete_tasks(self, result):
+        # Called when the user responds to the delete confirmation toaster
+        if result:
+            self.task_grid.delete_selected_tasks()
+            # Show success toaster
+            self.toaster_manager.show_info("Tasks deleted successfully", "Tasks Deleted", 3000)
     
     def update_delete_button(self):
         """Update the delete button text based on selection count"""
@@ -165,10 +305,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def export_current_week(self):
         """Export the current week's tasks to a CSV file"""
         if self.current_week_id is None:
-            QtWidgets.QMessageBox.warning(
-                self, "No Week Selected", 
-                "Please select a week to export."
-            )
+            # Show warning toaster
+            self.toaster_manager.show_warning("Please select a week to export.", "No Week Selected", 5000)
             return
         
         # Open file dialog to get save location
@@ -179,15 +317,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if filename:
             try:
                 export_week_to_csv(self.current_week_id, filename)
-                QtWidgets.QMessageBox.information(
-                    self, "Export Successful", 
-                    f"Week exported successfully to {filename}"
-                )
+                # Show success toaster
+                self.toaster_manager.show_info(f"Week exported successfully to {filename}", "Export Successful", 5000)
             except Exception as e:
-                QtWidgets.QMessageBox.critical(
-                    self, "Export Failed", 
-                    f"Failed to export week: {str(e)}"
-                )
+                # Show error toaster
+                self.toaster_manager.show_error(f"Failed to export week: {str(e)}", "Export Failed", 5000)
     
     def export_all_weeks(self):
         """Export all weeks to an Excel file with multiple sheets"""
@@ -199,15 +333,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if filename:
             try:
                 export_all_weeks_to_excel(filename)
-                QtWidgets.QMessageBox.information(
-                    self, "Export Successful", 
-                    f"All weeks exported successfully to {filename}"
-                )
+                # Show success toaster
+                self.toaster_manager.show_info(f"All weeks exported successfully to {filename}", "Export Successful", 5000)
             except Exception as e:
-                QtWidgets.QMessageBox.critical(
-                    self, "Export Failed", 
-                    f"Failed to export all weeks: {str(e)}"
-                )
+                # Show error toaster
+                self.toaster_manager.show_error(f"Failed to export all weeks: {str(e)}", "Export Failed", 5000)
     
     def import_data(self):
         """Import data from a CSV or Excel file"""
@@ -237,15 +367,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.task_grid.refresh_tasks(self.current_week_id)
                     self.refresh_analysis()
                 
-                QtWidgets.QMessageBox.information(
-                    self, "Import Complete", 
-                    f"Data import from {filename} complete."
-                )
+                # Show success toaster
+                self.toaster_manager.show_info(f"Data import from {filename} complete.", "Import Complete", 5000)
             except Exception as e:
-                QtWidgets.QMessageBox.critical(
-                    self, "Import Failed", 
-                    f"Failed to import data: {str(e)}"
-                )
+                # Show error toaster
+                self.toaster_manager.show_error(f"Failed to import data: {str(e)}", "Import Failed", 5000)
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

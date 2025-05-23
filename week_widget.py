@@ -17,6 +17,7 @@ class WeekWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Weeks")
+        self.main_window = parent  # Store reference to main window
         
         # Allow this widget to be undocked/floated
         self.setWindowFlags(QtCore.Qt.Window)
@@ -117,11 +118,22 @@ class WeekWidget(QtWidgets.QWidget):
         try:
             c.execute("INSERT INTO weeks (week_label) VALUES (?)", (week_label,))
             conn.commit()
+            
+            # Show success notification via main window toaster manager
+            if hasattr(self.main_window, 'toaster_manager'):
+                self.main_window.toaster_manager.show_info(f"Created new week: {week_label}", "Week Added", 3000)
         except sqlite3.IntegrityError:
-            QtWidgets.QMessageBox.warning(
-                self, "Duplicate Week", 
-                f"A week with the label '{week_label}' already exists."
-            )
+            # Show warning notification via main window toaster manager
+            if hasattr(self.main_window, 'toaster_manager'):
+                self.main_window.toaster_manager.show_warning(
+                    f"A week with the label '{week_label}' already exists.", "Duplicate Week", 5000
+                )
+            else:
+                # Fallback to traditional dialog if toaster not available
+                QtWidgets.QMessageBox.warning(
+                    self, "Duplicate Week", 
+                    f"A week with the label '{week_label}' already exists."
+                )
         finally:
             conn.close()
         
@@ -132,30 +144,59 @@ class WeekWidget(QtWidgets.QWidget):
                 break
     
     def delete_week(self):
-        week_id, _ = self.current_week_id()
+        week_id, week_label = self.current_week_id()
         if week_id:
-            reply = QtWidgets.QMessageBox.question(
-                self, 'Confirm Deletion',
-                "Are you sure you want to delete this week and all its tasks?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                QtWidgets.QMessageBox.No
-            )
+            # If we have access to main window toaster manager, use it for confirmation
+            if hasattr(self.main_window, 'toaster_manager'):
+                self.main_window.toaster_manager.show_question(
+                    "Are you sure you want to delete this week and all its tasks?",
+                    "Confirm Deletion",
+                    self.confirm_delete_week
+                )
+            else:
+                # Fallback to traditional dialog if toaster not available
+                reply = QtWidgets.QMessageBox.question(
+                    self, 'Confirm Deletion',
+                    "Are you sure you want to delete this week and all its tasks?",
+                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                    QtWidgets.QMessageBox.No
+                )
+                
+                if reply == QtWidgets.QMessageBox.Yes:
+                    self.do_delete_week()
+    
+    def confirm_delete_week(self, result):
+        """Callback for toaster confirmation"""
+        if result:
+            self.do_delete_week()
+    
+    def do_delete_week(self):
+        """Perform the actual week deletion after confirmation"""
+        week_id, week_label = self.current_week_id()
+        
+        if not week_id:
+            return
             
-            if reply == QtWidgets.QMessageBox.Yes:
-                # Create a backup before deleting (only in production)
-                self.create_db_backup()
-                
-                conn = sqlite3.connect(DB_FILE)
-                c = conn.cursor()
-                c.execute("DELETE FROM weeks WHERE id=?", (week_id,))
-                conn.commit()
-                conn.close()
-                
-                self.refresh_weeks()
-                if self.week_list.count() > 0:
-                    self.week_list.setCurrentRow(0)
-                else:
-                    self.weekChanged.emit(None, None)
+        # Create a backup before deleting (only in production)
+        self.create_db_backup()
+        
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("DELETE FROM weeks WHERE id=?", (week_id,))
+        conn.commit()
+        conn.close()
+        
+        # Show deletion notification via main window toaster manager
+        if hasattr(self.main_window, 'toaster_manager'):
+            self.main_window.toaster_manager.show_info(
+                f"Week '{week_label}' deleted", "Week Deleted", 3000
+            )
+        
+        self.refresh_weeks()
+        if self.week_list.count() > 0:
+            self.week_list.setCurrentRow(0)
+        else:
+            self.weekChanged.emit(None, None)
     
     def get_weeks(self):
         conn = sqlite3.connect(DB_FILE)
