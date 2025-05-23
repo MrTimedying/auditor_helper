@@ -52,7 +52,7 @@ class ToasterWidget(QtWidgets.QWidget):
         # Frame with border
         self.frame = QtWidgets.QFrame()
         
-        # Apply style based on type
+        # Apply style based on type (only for icon, not border)
         if self.toaster_type == ToasterTypes.INFO:
             color = "#2196F3"  # Blue
             icon = "ℹ️"
@@ -68,11 +68,23 @@ class ToasterWidget(QtWidgets.QWidget):
         else:
             color = "#2196F3"  # Default blue
             icon = "ℹ️"
+        
+        # Get the main window to check dark mode
+        main_window = self.parent
+        is_dark_mode = hasattr(main_window, 'dark_mode') and main_window.dark_mode
+        
+        # Set border color based on theme instead of toast type
+        if is_dark_mode:
+            border_color = "#555555"  # Dark gray border for dark mode
+            bg_color = "#333333"      # Dark background
+        else:
+            border_color = "#cccccc"  # Light gray border for light mode
+            bg_color = "#ffffff"      # White background
             
         self.frame.setStyleSheet(f"""
             QFrame {{
-                background-color: #333;
-                border: 2px solid {color};
+                background-color: {bg_color};
+                border: 1px solid {border_color};
                 border-radius: 8px;
             }}
         """)
@@ -82,22 +94,22 @@ class ToasterWidget(QtWidgets.QWidget):
         # Title and close button row
         header_layout = QtWidgets.QHBoxLayout()
         title_label = QtWidgets.QLabel(f"{icon} {self.title}" if self.title else icon)
-        title_label.setStyleSheet("color: white; font-weight: bold;")
+        title_label.setStyleSheet(f"color: {'white' if is_dark_mode else 'black'}; font-weight: bold;")
         header_layout.addWidget(title_label)
         
         if not self.require_action:
             close_button = QtWidgets.QPushButton("×")
-            close_button.setStyleSheet("""
-                QPushButton {
-                    color: white;
+            close_button.setStyleSheet(f"""
+                QPushButton {{
+                    color: {'white' if is_dark_mode else 'black'};
                     background-color: transparent;
                     border: none;
                     font-size: 16px;
                     font-weight: bold;
-                }
-                QPushButton:hover {
-                    color: #CCC;
-                }
+                }}
+                QPushButton:hover {{
+                    color: {'#CCC' if is_dark_mode else '#555'};
+                }}
             """)
             close_button.setMaximumWidth(20)
             close_button.clicked.connect(self.close)
@@ -107,7 +119,7 @@ class ToasterWidget(QtWidgets.QWidget):
         
         # Message
         message_label = QtWidgets.QLabel(self.message)
-        message_label.setStyleSheet("color: white;")
+        message_label.setStyleSheet(f"color: {'white' if is_dark_mode else 'black'};")
         message_label.setWordWrap(True)
         frame_layout.addWidget(message_label)
         
@@ -131,17 +143,17 @@ class ToasterWidget(QtWidgets.QWidget):
             ok_button.clicked.connect(self.accept)
             
             cancel_button = QtWidgets.QPushButton("Cancel")
-            cancel_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #555;
-                    color: white;
+            cancel_button.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {'#555' if is_dark_mode else '#e0e0e0'};
+                    color: {'white' if is_dark_mode else 'black'};
                     border: none;
                     padding: 5px 15px;
                     border-radius: 4px;
-                }
-                QPushButton:hover {
-                    background-color: #666;
-                }
+                }}
+                QPushButton:hover {{
+                    background-color: {'#666' if is_dark_mode else '#d0d0d0'};
+                }}
             """)
             cancel_button.clicked.connect(self.reject)
             
@@ -295,4 +307,4 @@ class ToasterManager(QtCore.QObject):
         """Clear all toasters"""
         for toaster_id, toaster in list(self.toasters.items()):
             if toaster:
-                toaster.close() 
+                toaster.close()

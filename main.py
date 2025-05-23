@@ -191,9 +191,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_theme_button(self):
         """Update the theme button text based on current mode"""
         if self.dark_mode:
-            self.theme_btn.setText("☀️ Light Mode")
+            self.theme_btn.setText("☀️")
         else:
-            self.theme_btn.setText("🌙 Dark Mode")
+            self.theme_btn.setText("🌙")
     
     def create_menu_bar(self):
         # Create menu bar
