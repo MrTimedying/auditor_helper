@@ -1,0 +1,5 @@
+
+{"name": "Contextual Memory",
+"project description": "Auditor Helper is a management application that allows the user to easily track their work. Work is task based, so it should allow an easy management of tasks.",
+"agency": "Very low on autonomous refactoring of code that is not explicitly requested by prompts.",
+"priority": "Database reusability across versions of the app should be prioritized, if possible."}

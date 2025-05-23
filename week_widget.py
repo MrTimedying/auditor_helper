@@ -26,7 +26,6 @@ class WeekWidget(QtWidgets.QWidget):
         
         # Week list
         self.week_list = QtWidgets.QListWidget()
-        layout.addWidget(QtWidgets.QLabel("Weeks"))
         layout.addWidget(self.week_list)
         
         # Week controls

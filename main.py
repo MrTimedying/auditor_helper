@@ -38,6 +38,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_task_btn = QtWidgets.QPushButton("Add New Task")
         self.add_task_btn.clicked.connect(self.add_task)
         add_task_layout.addWidget(self.add_task_btn)
+        
+        # Add delete rows button
+        self.delete_rows_btn = QtWidgets.QPushButton("Delete Rows")
+        self.delete_rows_btn.clicked.connect(self.delete_selected_tasks)
+        self.delete_rows_btn.setEnabled(False)  # Disable initially
+        
+        # Set delete button style to be red-ish
+        self.delete_rows_btn.setStyleSheet(
+            "QPushButton { background-color: #ff6b6b; color: white; }"
+            "QPushButton:hover { background-color: #ff4747; }"
+            "QPushButton:disabled { background-color: #ffb1b1; color: #f0f0f0; }"
+        )
+        
+        add_task_layout.addWidget(self.delete_rows_btn)
         add_task_layout.addStretch()
         task_layout.addLayout(add_task_layout)
         
@@ -119,6 +133,22 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.current_week_id is not None:
             self.task_grid.add_task(self.current_week_id)
             self.refresh_analysis()
+    
+    def delete_selected_tasks(self):
+        self.task_grid.delete_selected_tasks()
+    
+    def update_delete_button(self):
+        """Update the delete button text based on selection count"""
+        count = len(self.task_grid.selected_tasks)
+        if count == 0:
+            self.delete_rows_btn.setText("Delete Rows")
+            self.delete_rows_btn.setEnabled(False)
+        elif count == 1:
+            self.delete_rows_btn.setText("Delete Row")
+            self.delete_rows_btn.setEnabled(True)
+        else:
+            self.delete_rows_btn.setText(f"Delete Rows ({count})")
+            self.delete_rows_btn.setEnabled(True)
     
     def refresh_analysis(self):
         self.analysis_widget.refresh_analysis(self.current_week_id)
