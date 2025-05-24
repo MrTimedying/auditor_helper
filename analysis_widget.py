@@ -33,11 +33,13 @@ class AnalysisWidget(QtWidgets.QWidget):
         self.avg_time_label = QtWidgets.QLabel("Average Time: 00:00:00")
         self.time_limit_usage_label = QtWidgets.QLabel("Time Limit Usage: 0.0%")
         self.fail_rate_label = QtWidgets.QLabel("Fail Rate: 0.0%")
+        self.bonus_tasks_label = QtWidgets.QLabel("Bonus Tasks: 0")
         self.weekly_earnings_label = QtWidgets.QLabel("Weekly Earnings: $0.00")
         weekly_stats_layout.addWidget(self.total_time_label)
         weekly_stats_layout.addWidget(self.avg_time_label)
         weekly_stats_layout.addWidget(self.time_limit_usage_label)
         weekly_stats_layout.addWidget(self.fail_rate_label)
+        weekly_stats_layout.addWidget(self.bonus_tasks_label)
         weekly_stats_layout.addWidget(self.weekly_earnings_label)
         weekly_stats_layout.addStretch()
         weekly_layout.addWidget(weekly_stats_widget)
@@ -86,7 +88,7 @@ class AnalysisWidget(QtWidgets.QWidget):
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
         c.execute("""
-            SELECT duration, time_limit, score, project_name, locale, date_audited
+            SELECT duration, time_limit, score, project_name, locale, date_audited, bonus_paid
             FROM tasks
             WHERE week_id=?
         """, (week_id,))
@@ -101,19 +103,33 @@ class AnalysisWidget(QtWidgets.QWidget):
         total_limit_seconds = 0
         low_scores = 0
         num_tasks = len(tasks_data)
+        bonus_task_count = 0
+        regular_task_seconds = 0
+        bonus_task_seconds = 0
 
         # Data structures for analysis
         project_locale_counts = defaultdict(lambda: defaultdict(int))
         daily_total_seconds = defaultdict(int)
+        daily_regular_seconds = defaultdict(int)
+        daily_bonus_seconds = defaultdict(int)
         daily_project_counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 
-        for duration_str, time_limit_str, score, project_name, locale, date_audited in tasks_data:
+        for duration_str, time_limit_str, score, project_name, locale, date_audited, bonus_paid in tasks_data:
             current_task_seconds = 0
+            is_bonus = bool(bonus_paid)
+            
             try:
                 if duration_str:
                     h, m, s = map(int, duration_str.split(':'))
                     current_task_seconds = h * 3600 + m * 60 + s
                     total_task_seconds += current_task_seconds
+                    
+                    # Track separately for regular and bonus tasks
+                    if is_bonus:
+                        bonus_task_seconds += current_task_seconds
+                        bonus_task_count += 1
+                    else:
+                        regular_task_seconds += current_task_seconds
                 
                 if time_limit_str:
                     h, m, s = map(int, time_limit_str.split(':'))
@@ -136,6 +152,12 @@ class AnalysisWidget(QtWidgets.QWidget):
             if date_audited and date_audited.strip():
                 day = date_audited.strip()
                 daily_total_seconds[day] += current_task_seconds
+                # Track separately for regular and bonus tasks
+                if is_bonus:
+                    daily_bonus_seconds[day] += current_task_seconds
+                else:
+                    daily_regular_seconds[day] += current_task_seconds
+                
                 # Store daily project breakdown
                 daily_project_counts[day][pn][loc] += 1
 
@@ -144,15 +166,19 @@ class AnalysisWidget(QtWidgets.QWidget):
         time_limit_usage = (total_task_seconds / total_limit_seconds * 100) if total_limit_seconds > 0 else 0
         fail_rate = (low_scores / num_tasks * 100) if num_tasks > 0 else 0
         
+        # Calculate earnings with bonus pay (50% increase for bonus tasks)
         hourly_rate = 25.3
-        total_hours = total_task_seconds / 3600.0
-        weekly_earnings = total_hours * hourly_rate
+        regular_hours = regular_task_seconds / 3600.0
+        bonus_hours = bonus_task_seconds / 3600.0
+        bonus_rate = hourly_rate * 1.5  # 50% increase for bonus tasks
+        weekly_earnings = (regular_hours * hourly_rate) + (bonus_hours * bonus_rate)
 
         # Update weekly statistics labels
         self.total_time_label.setText(f"Total Time: {self._format_time(total_task_seconds)}")
         self.avg_time_label.setText(f"Average Time: {self._format_time(avg_seconds)}")
         self.time_limit_usage_label.setText(f"Time Limit Usage: {time_limit_usage:.1f}%")
         self.fail_rate_label.setText(f"Fail Rate: {fail_rate:.1f}%")
+        self.bonus_tasks_label.setText(f"Bonus Tasks: {bonus_task_count}")
         self.weekly_earnings_label.setText(f"Weekly Earnings: ${weekly_earnings:.2f}")
 
         # Update weekly project breakdown
@@ -167,8 +193,15 @@ class AnalysisWidget(QtWidgets.QWidget):
         # Update daily durations
         daily_duration_html = []
         for date_key in sorted(daily_total_seconds.keys()):
-            formatted_time = self._format_time(daily_total_seconds[date_key])
-            daily_duration_html.append(f"<b>{html.escape(str(date_key))}:</b> {formatted_time}")
+            total_time = self._format_time(daily_total_seconds[date_key])
+            regular_time = self._format_time(daily_regular_seconds[date_key])
+            bonus_time = self._format_time(daily_bonus_seconds[date_key])
+            
+            daily_duration_html.append(f"<b>{html.escape(str(date_key))}:</b>")
+            daily_duration_html.append(f"&nbsp;&nbsp;Total: {total_time}")
+            daily_duration_html.append(f"&nbsp;&nbsp;Regular: {regular_time}")
+            daily_duration_html.append(f"&nbsp;&nbsp;Bonus: {bonus_time}")
+            daily_duration_html.append("") 
         self.daily_duration_text.setHtml("<br>".join(daily_duration_html))
 
         # Update daily project breakdown
@@ -192,6 +225,7 @@ class AnalysisWidget(QtWidgets.QWidget):
         self.avg_time_label.setText("Average Time: 00:00:00")
         self.time_limit_usage_label.setText("Time Limit Usage: 0.0%")
         self.fail_rate_label.setText("Fail Rate: 0.0%")
+        self.bonus_tasks_label.setText("Bonus Tasks: 0")
         self.weekly_earnings_label.setText("Weekly Earnings: $0.00")
         
         # Clear project breakdowns and daily data

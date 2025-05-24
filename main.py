@@ -71,7 +71,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Set delete button style to be red-ish
         self.delete_rows_btn.setStyleSheet(
-            "QPushButton { background-color: #ff6b6b; color: white; }"
+            "QPushButton { background-color: #ff6b6b; color: white; border-radius: 4px; }"
             "QPushButton:hover { background-color: #ff4747; }"
             "QPushButton:disabled { background-color: #ffb1b1; color: #f0f0f0; }"
         )
@@ -127,6 +127,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 QTableView {
                     gridline-color: #4a4a48;
                     background-color: #383735;
+                    border: 1px solid #1a1918;
+                    border-radius: 2px;
                 }
                 QHeaderView::section { 
                     background-color: #1a1918; 
@@ -155,6 +157,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     color: #f1f1f1;
                     border: none;
                     padding: 5px;
+                    border-radius: 4px;
                 }
                 QPushButton:hover {
                     background-color: #2a2928;
@@ -165,7 +168,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit {
                     background-color: #2a2928;
                     color: #f1f1f1;
-                    border: none;
+                    border: 1px solid #1a1918;
+                    border-radius: 2px;
                     padding: 3px;
                 }
                 QComboBox QAbstractItemView {
@@ -185,7 +189,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 QListWidget {
                     background-color: #383735;
                     color: #f1f1f1;
-                    border: none;
+                    border: 1px solid #1a1918;
+                    border-radius: 2px;
                 }
                 QListWidget::item:selected {
                     background-color: #1a1918;
@@ -219,6 +224,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 QTableView {
                     gridline-color: #e5e1d6;
                     background-color: #f5f1e6;
+                    border: 1px solid #e5e1d6;
+                    border-radius: 2px;
                 }
                 QHeaderView::section { 
                     background-color: #f5eedc; 
@@ -247,6 +254,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     color: #000;
                     border: none;
                     padding: 5px;
+                    border-radius: 4px;
                 }
                 QPushButton:hover {
                     background-color: #e5decc;
@@ -257,7 +265,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit {
                     background-color: #ffffff;
                     color: #000;
-                    border: none;
+                    border: 1px solid #e5e1d6;
+                    border-radius: 2px;
                     padding: 3px;
                 }
                 QComboBox QAbstractItemView {
@@ -277,7 +286,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 QListWidget {
                     background-color: #f5f1e6;
                     color: #000;
-                    border: none;
+                    border: 1px solid #e5e1d6;
+                    border-radius: 2px;
                 }
                 QListWidget::item:selected {
                     background-color: #f5eedc;
@@ -289,9 +299,14 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Keep the delete button style consistent regardless of theme
         self.delete_rows_btn.setStyleSheet(
-            "QPushButton { background-color: #ff6b6b; color: white; }"
+            "QPushButton { background-color: #ff6b6b; color: white; border-radius: 4px; }"
             "QPushButton:hover { background-color: #ff4747; }"
             "QPushButton:disabled { background-color: #ffb1b1; color: #f0f0f0; }"
+        )
+        
+        # Apply rounded styles to the add task button
+        self.add_task_btn.setStyleSheet(
+            "QPushButton { border-radius: 4px; }"
         )
 
     def toggle_theme(self):

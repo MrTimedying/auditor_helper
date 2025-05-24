@@ -45,11 +45,18 @@ class WeekWidget(QtWidgets.QWidget):
         date_layout.addWidget(self.end_date)
         layout.addLayout(date_layout)
         
-        self.new_week_btn = QtWidgets.QPushButton("Add Week")
-        self.del_week_btn = QtWidgets.QPushButton("Delete Week")
+        # Create buttons in a horizontal layout
+        buttons_layout = QtWidgets.QHBoxLayout()
         
-        layout.addWidget(self.new_week_btn)
-        layout.addWidget(self.del_week_btn)
+        self.new_week_btn = QtWidgets.QPushButton("Add Week")
+        self.new_week_btn.setStyleSheet("QPushButton { border-radius: 4px; }")
+        self.del_week_btn = QtWidgets.QPushButton("Delete Week")
+        self.del_week_btn.setStyleSheet("QPushButton { border-radius: 4px; }")
+        
+        buttons_layout.addWidget(self.new_week_btn)
+        buttons_layout.addWidget(self.del_week_btn)
+        
+        layout.addLayout(buttons_layout)
         layout.addStretch()
         
         # Connect signals

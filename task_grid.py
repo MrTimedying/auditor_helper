@@ -31,7 +31,7 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Setup table structure
         columns = [
-            "", "Attempt ID", "Duration", "Project ID", "Project Name", 
+            "", "Bonus paid", "Attempt ID", "Duration", "Project ID", "Project Name", 
             "Operation ID", "Time Limit", "Date Audited", "Score", 
             "Feedback", "Locale"
         ]
@@ -46,17 +46,18 @@ class TaskGrid(QtWidgets.QTableWidget):
         self.cellDoubleClicked.connect(self.handle_cell_double_clicked)
         
         # Set column widths
-        self.setColumnWidth(0, 30)   # Checkbox column
-        self.setColumnWidth(1, 100)  # Attempt ID
-        self.setColumnWidth(2, 80)   # Duration
-        self.setColumnWidth(3, 80)   # Project ID
-        self.setColumnWidth(4, 120)  # Project Name
-        self.setColumnWidth(5, 100)  # Operation ID
-        self.setColumnWidth(6, 80)   # Time Limit
-        self.setColumnWidth(7, 100)  # Date Audited
-        self.setColumnWidth(8, 60)   # Score
-        self.setColumnWidth(9, 200)  # Feedback
-        self.setColumnWidth(10, 80)  # Locale
+        self.setColumnWidth(0, 30)   # Selection checkbox column
+        self.setColumnWidth(1, 30)   # Bonus paid checkbox column
+        self.setColumnWidth(2, 100)  # Attempt ID
+        self.setColumnWidth(3, 80)   # Duration
+        self.setColumnWidth(4, 80)   # Project ID
+        self.setColumnWidth(5, 120)  # Project Name
+        self.setColumnWidth(6, 100)  # Operation ID
+        self.setColumnWidth(7, 80)   # Time Limit
+        self.setColumnWidth(8, 100)  # Date Audited
+        self.setColumnWidth(9, 60)   # Score
+        self.setColumnWidth(10, 200) # Feedback
+        self.setColumnWidth(11, 80)  # Locale
         
         # Connect signals
         self.cellChanged.connect(self.handle_cell_changed)
@@ -75,19 +76,24 @@ class TaskGrid(QtWidgets.QTableWidget):
             
         task_id = self.tasks[row][0]
         
-        # Skip checkbox column
-        if col == 0:
+        # Skip checkbox columns
+        if col == 0 or col == 1:
             return
             
-        # Handle feedback cell (col 9) - open dialog instead of inline edit
-        if col == 9:
+        # Handle feedback cell (col 10) - open dialog instead of inline edit
+        if col == 10:
             self.edit_feedback(task_id)
             return
     
     def handle_cell_clicked(self, row, col):
-        # Handle checkbox column clicks
-        if col == 0 and hasattr(self, 'tasks') and row < len(self.tasks):
-            task_id = self.tasks[row][0]
+        # Skip if we don't have task data
+        if not hasattr(self, 'tasks') or row >= len(self.tasks):
+            return
+            
+        task_id = self.tasks[row][0]
+        
+        # Handle selection checkbox column clicks
+        if col == 0:
             checkbox_item = self.item(row, 0)
             
             if checkbox_item.checkState() == QtCore.Qt.Checked:
@@ -98,10 +104,26 @@ class TaskGrid(QtWidgets.QTableWidget):
             # Update delete button text
             if hasattr(self.main_window, 'update_delete_button'):
                 self.main_window.update_delete_button()
+        
+        # Handle bonus paid checkbox column clicks
+        elif col == 1:
+            bonus_checkbox = self.item(row, 1)
+            bonus_paid = 1 if bonus_checkbox.checkState() == QtCore.Qt.Checked else 0
+            
+            # Update database
+            conn = sqlite3.connect(DB_FILE)
+            c = conn.cursor()
+            c.execute("UPDATE tasks SET bonus_paid=? WHERE id=?", (bonus_paid, task_id))
+            conn.commit()
+            conn.close()
+            
+            # Update analysis
+            if hasattr(self.main_window, 'refresh_analysis'):
+                self.main_window.refresh_analysis()
     
     def handle_cell_changed(self, row, col):
-        # Skip if we're just loading data or it's the checkbox column
-        if self.is_loading or not hasattr(self, 'tasks') or row >= len(self.tasks) or col == 0:
+        # Skip if we're just loading data or it's a checkbox column
+        if self.is_loading or not hasattr(self, 'tasks') or row >= len(self.tasks) or col == 0 or col == 1:
             return
             
         task_id = self.tasks[row][0]
@@ -110,7 +132,8 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Determine which field to update based on column
         field_names = [
-            None,  # Skip checkbox column
+            None,  # Skip selection checkbox column
+            None,  # Skip bonus paid checkbox column
             "attempt_id", "duration", "project_id", "project_name",
             "operation_id", "time_limit", "date_audited", "score",
             "feedback", "locale"
@@ -181,9 +204,9 @@ class TaskGrid(QtWidgets.QTableWidget):
     
     def is_init_value(self, col_idx, value):
         """Check if a value is an initialization value that should be highlighted"""
-        if col_idx == 2 or col_idx == 6:  # Duration or Time Limit
+        if col_idx == 3 or col_idx == 7:  # Duration or Time Limit (adjusted column indexes)
             return value == "00:00:00"
-        elif col_idx == 8:  # Score
+        elif col_idx == 9:  # Score (adjusted column index)
             return value == "0"
         return False
     
@@ -205,7 +228,7 @@ class TaskGrid(QtWidgets.QTableWidget):
         c = conn.cursor()
         c.execute(
             """SELECT id, attempt_id, duration, project_id, project_name,
-               operation_id, time_limit, date_audited, score, feedback, locale
+               operation_id, time_limit, date_audited, score, feedback, locale, bonus_paid
                FROM tasks WHERE week_id=? ORDER BY id""", 
             (week_id,)
         )
@@ -216,14 +239,22 @@ class TaskGrid(QtWidgets.QTableWidget):
             task_id = task[0]
             self.insertRow(row_idx)
             
-            # Add checkbox in the first column
+            # Add selection checkbox in the first column
             checkbox_item = QtWidgets.QTableWidgetItem()
             checkbox_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
             checkbox_item.setCheckState(QtCore.Qt.Unchecked)
             self.setItem(row_idx, 0, checkbox_item)
             
-            # Populate cells
-            for col_idx, value in enumerate(task[1:]):  # Skip the ID
+            # Add bonus paid checkbox in the second column
+            bonus_paid_checkbox = QtWidgets.QTableWidgetItem()
+            bonus_paid_checkbox.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            # Set checked status based on database value (last item in the tuple)
+            bonus_status = QtCore.Qt.Checked if task[11] else QtCore.Qt.Unchecked
+            bonus_paid_checkbox.setCheckState(bonus_status)
+            self.setItem(row_idx, 1, bonus_paid_checkbox)
+            
+            # Populate cells - skip the ID and bonus_paid (they're handled separately)
+            for col_idx, value in enumerate(task[1:-1]):  # Skip the ID and bonus_paid
                 # Process value
                 display_value = str(value) if value is not None else ""
                 
@@ -235,18 +266,18 @@ class TaskGrid(QtWidgets.QTableWidget):
                 item = TaskGridItem(display_value, is_empty=is_empty, init_value=is_init)
                 
                 # Special styling for feedback cells to indicate they're clickable
-                if col_idx == 8:  # Feedback column (9 in the grid with checkbox)
+                if col_idx == 8:  # Feedback column (10 in the grid with checkboxes)
                     item.setToolTip(str(value) if value is not None else "") # Use full text for tooltip
                     # Make feedback non-editable directly in the grid
                     item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 
                 # Special handling for Score column
-                if col_idx == 7:  # Score column (8 in the grid with checkbox)
+                if col_idx == 7:  # Score column (9 in the grid with checkboxes)
                     validator = QtGui.QIntValidator(1, 5)
                     item.setData(QtCore.Qt.UserRole, validator)
                 
-                # Add item to the grid (add 1 to col_idx to account for checkbox column)
-                self.setItem(row_idx, col_idx + 1, item)
+                # Add item to the grid (add 2 to col_idx to account for checkbox columns)
+                self.setItem(row_idx, col_idx + 2, item)
             
             # Set row height
             self.setRowHeight(row_idx, 30)
@@ -274,7 +305,7 @@ class TaskGrid(QtWidgets.QTableWidget):
             # Find the row for the updated task
             for row_idx in range(self.rowCount()):
                 if row_idx < len(self.tasks) and self.tasks[row_idx][0] == task_id:
-                    item = self.item(row_idx, 9)  # Feedback column (was 8, now 9 with checkbox)
+                    item = self.item(row_idx, 10)  # Feedback column (was 9, now 10 with checkboxes)
                     if item:
                         new_text = dialog.editor.toPlainText()
                         item.setText(new_text) # Set the full text
@@ -326,9 +357,9 @@ class TaskGrid(QtWidgets.QTableWidget):
         c.execute(
             """INSERT INTO tasks (
                 week_id, attempt_id, duration, project_id, project_name,
-                operation_id, time_limit, date_audited, score, feedback, locale
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (week_id, "", "00:00:00", "", "", "", "00:00:00", today, 0, "", "")
+                operation_id, time_limit, date_audited, score, feedback, locale, bonus_paid
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (week_id, "", "00:00:00", "", "", "", "00:00:00", today, 0, "", "", 0)
         )
         conn.commit()
         conn.close()

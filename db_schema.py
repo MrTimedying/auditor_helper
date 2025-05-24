@@ -59,6 +59,15 @@ def init_db():
     else:
         # Just create the table if it doesn't exist or already has new schema
         create_tasks_table(c)
+        
+        # Check if we need to add the bonus_paid column to an existing table
+        if columns and "bonus_paid" not in columns:
+            print("Adding bonus_paid column to existing tasks table...")
+            try:
+                c.execute("ALTER TABLE tasks ADD COLUMN bonus_paid INTEGER DEFAULT 0")
+                print("Added bonus_paid column successfully")
+            except Exception as e:
+                print(f"Error adding bonus_paid column: {e}")
     
     # Create the feedback_files table for storing markdown files
     c.execute(
@@ -88,6 +97,7 @@ def create_tasks_table(cursor):
             score INTEGER DEFAULT 0,
             feedback TEXT,
             locale TEXT,
+            bonus_paid INTEGER DEFAULT 0,
             FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
         )"""
     )
