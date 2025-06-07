@@ -98,9 +98,40 @@ def create_tasks_table(cursor):
             feedback TEXT,
             locale TEXT,
             bonus_paid INTEGER DEFAULT 0,
+            time_begin TEXT,
+            time_end TEXT,
             FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
         )"""
     )
 
+def migrate_time_columns():
+    """Add time_begin and time_end columns if they don't exist"""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    
+    # Check if the columns exist
+    c.execute("PRAGMA table_info(tasks)")
+    columns = [column[1] for column in c.fetchall()]
+    
+    if "time_begin" not in columns:
+        print("Adding time_begin column to tasks table...")
+        try:
+            c.execute("ALTER TABLE tasks ADD COLUMN time_begin TEXT")
+            print("Added time_begin column successfully")
+        except Exception as e:
+            print(f"Error adding time_begin column: {e}")
+    
+    if "time_end" not in columns:
+        print("Adding time_end column to tasks table...")
+        try:
+            c.execute("ALTER TABLE tasks ADD COLUMN time_end TEXT")
+            print("Added time_end column successfully")
+        except Exception as e:
+            print(f"Error adding time_end column: {e}")
+    
+    conn.commit()
+    conn.close()
+
 if __name__ == "__main__":
-    init_db() 
+    init_db()
+    migrate_time_columns() 

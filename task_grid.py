@@ -1,6 +1,7 @@
 import sqlite3
 from PySide6 import QtCore, QtWidgets, QtGui
 from datetime import datetime
+from timer_dialog import TimerDialog
 
 DB_FILE = "tasks.db"
 
@@ -33,7 +34,7 @@ class TaskGrid(QtWidgets.QTableWidget):
         columns = [
             "", "Bonus paid", "Attempt ID", "Duration", "Project ID", "Project Name", 
             "Operation ID", "Time Limit", "Date Audited", "Score", 
-            "Feedback", "Locale"
+            "Feedback", "Locale", "Time Begin", "Time End"
         ]
         self.setColumnCount(len(columns))
         self.setHorizontalHeaderLabels(columns)
@@ -58,6 +59,8 @@ class TaskGrid(QtWidgets.QTableWidget):
         self.setColumnWidth(9, 60)   # Score
         self.setColumnWidth(10, 200) # Feedback
         self.setColumnWidth(11, 80)  # Locale
+        self.setColumnWidth(12, 80)  # Time Begin
+        self.setColumnWidth(13, 80)  # Time End
         
         # Connect signals
         self.cellChanged.connect(self.handle_cell_changed)
@@ -78,6 +81,11 @@ class TaskGrid(QtWidgets.QTableWidget):
         
         # Skip checkbox columns
         if col == 0 or col == 1:
+            return
+        
+        # Handle Duration cell (col 3) - open timer dialog instead of inline edit
+        if col == 3:
+            self.open_timer_dialog(task_id)
             return
             
         # Handle feedback cell (col 10) - open dialog instead of inline edit
@@ -136,7 +144,7 @@ class TaskGrid(QtWidgets.QTableWidget):
             None,  # Skip bonus paid checkbox column
             "attempt_id", "duration", "project_id", "project_name",
             "operation_id", "time_limit", "date_audited", "score",
-            "feedback", "locale"
+            "feedback", "locale", "time_begin", "time_end"
         ]
         
         if col < len(field_names) and field_names[col]:
@@ -228,7 +236,8 @@ class TaskGrid(QtWidgets.QTableWidget):
         c = conn.cursor()
         c.execute(
             """SELECT id, attempt_id, duration, project_id, project_name,
-               operation_id, time_limit, date_audited, score, feedback, locale, bonus_paid
+               operation_id, time_limit, date_audited, score, feedback, locale, bonus_paid,
+               time_begin, time_end
                FROM tasks WHERE week_id=? ORDER BY id""", 
             (week_id,)
         )
@@ -254,7 +263,7 @@ class TaskGrid(QtWidgets.QTableWidget):
             self.setItem(row_idx, 1, bonus_paid_checkbox)
             
             # Populate cells - skip the ID and bonus_paid (they're handled separately)
-            for col_idx, value in enumerate(task[1:-1]):  # Skip the ID and bonus_paid
+            for col_idx, value in enumerate(task[1:-3]):  # Skip the ID, bonus_paid, time_begin, time_end
                 # Process value
                 display_value = str(value) if value is not None else ""
                 
@@ -264,6 +273,10 @@ class TaskGrid(QtWidgets.QTableWidget):
                 
                 # Create the custom item
                 item = TaskGridItem(display_value, is_empty=is_empty, init_value=is_init)
+                
+                # Special handling for Duration cells to make them non-editable (only openable via timer dialog)
+                if col_idx == 1:  # Duration column (3 in the grid with checkboxes)
+                    item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 
                 # Special styling for feedback cells to indicate they're clickable
                 if col_idx == 8:  # Feedback column (10 in the grid with checkboxes)
@@ -278,6 +291,17 @@ class TaskGrid(QtWidgets.QTableWidget):
                 
                 # Add item to the grid (add 2 to col_idx to account for checkbox columns)
                 self.setItem(row_idx, col_idx + 2, item)
+            
+            # Handle time_begin column (editable)
+            time_begin_value = str(task[-2]) if task[-2] is not None else ""
+            time_begin_item = TaskGridItem(time_begin_value, is_empty=self.is_empty_value(time_begin_value))
+            self.setItem(row_idx, 12, time_begin_item)  # Time Begin column
+            
+            # Handle time_end column (read-only)
+            time_end_value = str(task[-1]) if task[-1] is not None else ""
+            time_end_item = TaskGridItem(time_end_value, is_empty=self.is_empty_value(time_end_value))
+            time_end_item.setFlags(time_end_item.flags() & ~QtCore.Qt.ItemIsEditable)  # Make read-only
+            self.setItem(row_idx, 13, time_end_item)  # Time End column
             
             # Set row height
             self.setRowHeight(row_idx, 30)
@@ -357,15 +381,75 @@ class TaskGrid(QtWidgets.QTableWidget):
         c.execute(
             """INSERT INTO tasks (
                 week_id, attempt_id, duration, project_id, project_name,
-                operation_id, time_limit, date_audited, score, feedback, locale, bonus_paid
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (week_id, "", "00:00:00", "", "", "", "00:00:00", today, 0, "", "", 0)
+                operation_id, time_limit, date_audited, score, feedback, locale, bonus_paid,
+                time_begin, time_end
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (week_id, "", "00:00:00", "", "", "", "00:00:00", today, 0, "", "", 0, "", "")
         )
         conn.commit()
         conn.close()
         
         # Refresh the grid
         self.refresh_tasks(week_id)
+    
+    def update_task_time_and_duration_from_timer(self, task_id, new_duration_seconds, 
+                                                  is_first_start_for_task, has_duration_changed, 
+                                                  start_timestamp_for_new_task=None):
+        """
+        Update task duration and time columns based on timer dialog activity.
+        Called by TimerDialog when it closes.
+        """
+        from datetime import datetime
+        
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        
+        # Convert duration seconds to HH:MM:SS format
+        hours = int(new_duration_seconds // 3600)
+        minutes = int((new_duration_seconds % 3600) // 60)
+        seconds = int(new_duration_seconds % 60)
+        duration_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        
+        # Update duration
+        c.execute("UPDATE tasks SET duration=? WHERE id=?", (duration_str, task_id))
+        
+        # Handle time_begin logic
+        if is_first_start_for_task and start_timestamp_for_new_task:
+            # Check if time_begin is currently empty
+            c.execute("SELECT time_begin FROM tasks WHERE id=?", (task_id,))
+            current_time_begin = c.fetchone()[0]
+            
+            if not current_time_begin or current_time_begin.strip() == "":
+                # Record the start timestamp
+                time_begin_str = start_timestamp_for_new_task.strftime('%Y-%m-%d %H:%M:%S')
+                c.execute("UPDATE tasks SET time_begin=? WHERE id=?", (time_begin_str, task_id))
+        
+        # Handle time_end logic
+        if has_duration_changed:
+            # Record current time as end time
+            time_end_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            c.execute("UPDATE tasks SET time_end=? WHERE id=?", (time_end_str, task_id))
+        
+        conn.commit()
+        conn.close()
+        
+        # Refresh the grid to show updated values
+        self.refresh_tasks(self.current_week_id)
+        
+        # Update analysis
+        if hasattr(self.main_window, 'refresh_analysis'):
+            self.main_window.refresh_analysis()
+
+    def open_timer_dialog(self, task_id):
+        """Open the timer dialog for the specified task"""
+        week_task_number = None
+        for row_idx, task in enumerate(self.tasks):
+            if task[0] == task_id:
+                week_task_number = row_idx + 1 # 1-based indexing
+                break
+        
+        dialog = TimerDialog(self, task_id, week_task_number=week_task_number)
+        dialog.show()  # Use show() instead of exec() to make it non-modal
 
 
 class TaskGridItemDelegate(QtWidgets.QStyledItemDelegate):

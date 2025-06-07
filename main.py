@@ -6,7 +6,7 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from week_widget import WeekWidget
 from task_grid import TaskGrid
 from analysis_widget import AnalysisWidget
-from db_schema import init_db
+from db_schema import init_db, migrate_time_columns
 from export_data import export_week_to_csv, export_all_weeks_to_excel
 from import_data import main_import
 from toaster import ToasterManager
@@ -19,6 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Initialize the database
         init_db()
+        migrate_time_columns()
         
         # Initialize toaster manager
         self.toaster_manager = ToasterManager(self)
@@ -122,7 +123,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 QToolTip { 
                     color: #f1f1f1; 
                     background-color: #1a1918; 
-                    border: none; 
+                    border: 1px solid #1a1918; 
                 }
                 QTableView {
                     gridline-color: #4a4a48;
@@ -133,21 +134,23 @@ class MainWindow(QtWidgets.QMainWindow):
                 QHeaderView::section { 
                     background-color: #1a1918; 
                     color: #f1f1f1; 
-                    border: none;
+                    border: 1 px solid #1a1918;
                 }
                 QTabBar::tab {
                     background: #1a1918;
                     color: #b1b1b1;
-                    border: none;
+                    border: 1 px solid #1a1918;
                     padding: 5px;
                 }
                 QTabBar::tab:selected {
                     background: #383735;
                     color: #f1f1f1;
+                    border: 1 px solid #1a1918;
                 }
                 QFrame, QWidget {
                     background-color: #383735;
                     color: #f1f1f1;
+                    border: 1 px solid #1a1918;
                 }
                 QDialog, QMainWindow {
                     background-color: #383735;
@@ -155,9 +158,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 QPushButton {
                     background-color: #1a1918;
                     color: #f1f1f1;
-                    border: none;
+                    border: solid 1px #1a1918;
                     padding: 5px;
                     border-radius: 4px;
+                    
                 }
                 QPushButton:hover {
                     background-color: #2a2928;

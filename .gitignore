@@ -109,3 +109,6 @@ app_icon.ico
 *.manifest
 *.spec
 
+# Project Planning
+PLAN.md
+

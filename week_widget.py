@@ -53,8 +53,12 @@ class WeekWidget(QtWidgets.QWidget):
         self.del_week_btn = QtWidgets.QPushButton("Delete Week")
         self.del_week_btn.setStyleSheet("QPushButton { border-radius: 4px; }")
         
+        self.sort_weeks_btn = QtWidgets.QPushButton("Sort Weeks")
+        self.sort_weeks_btn.setStyleSheet("QPushButton { border-radius: 4px; }")
+        
         buttons_layout.addWidget(self.new_week_btn)
         buttons_layout.addWidget(self.del_week_btn)
+        buttons_layout.addWidget(self.sort_weeks_btn)
         
         layout.addLayout(buttons_layout)
         layout.addStretch()
@@ -63,6 +67,7 @@ class WeekWidget(QtWidgets.QWidget):
         self.week_list.itemSelectionChanged.connect(self.selection_changed)
         self.new_week_btn.clicked.connect(self.add_week)
         self.del_week_btn.clicked.connect(self.delete_week)
+        self.sort_weeks_btn.clicked.connect(self.refresh_weeks)
         
         self.weeks = []
         self.refresh_weeks()
@@ -208,7 +213,23 @@ class WeekWidget(QtWidgets.QWidget):
     def get_weeks(self):
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
-        c.execute("SELECT id, week_label FROM weeks ORDER BY week_label")
+        c.execute("SELECT id, week_label FROM weeks")
         weeks = c.fetchall()
         conn.close()
+        
+        # Sort weeks chronologically by parsing the start date from week_label
+        def parse_start_date(week_tuple):
+            week_id, week_label = week_tuple
+            try:
+                # Extract start date from format "dd/MM/yyyy - dd/MM/yyyy"
+                start_date_str = week_label.split(" - ")[0]
+                # Parse the date (dd/MM/yyyy format)
+                day, month, year = map(int, start_date_str.split("/"))
+                return datetime(year, month, day)
+            except (ValueError, IndexError, AttributeError):
+                # If parsing fails, use a very old date to put malformed entries at the beginning
+                return datetime(1900, 1, 1)
+        
+        # Sort by parsed start date
+        weeks.sort(key=parse_start_date)
         return weeks 
