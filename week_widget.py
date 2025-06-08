@@ -22,6 +22,9 @@ class WeekWidget(QtWidgets.QWidget):
         # Allow this widget to be undocked/floated
         self.setWindowFlags(QtCore.Qt.Window)
         
+        # Apply dark theme styling
+        self.setStyleSheet(self.get_dark_stylesheet())
+        
         # Layout
         layout = QtWidgets.QVBoxLayout(self)
         
@@ -49,12 +52,8 @@ class WeekWidget(QtWidgets.QWidget):
         buttons_layout = QtWidgets.QHBoxLayout()
         
         self.new_week_btn = QtWidgets.QPushButton("Add Week")
-        self.new_week_btn.setStyleSheet("QPushButton { border-radius: 4px; }")
         self.del_week_btn = QtWidgets.QPushButton("Delete Week")
-        self.del_week_btn.setStyleSheet("QPushButton { border-radius: 4px; }")
-        
         self.sort_weeks_btn = QtWidgets.QPushButton("Sort Weeks")
-        self.sort_weeks_btn.setStyleSheet("QPushButton { border-radius: 4px; }")
         
         buttons_layout.addWidget(self.new_week_btn)
         buttons_layout.addWidget(self.del_week_btn)
@@ -67,10 +66,71 @@ class WeekWidget(QtWidgets.QWidget):
         self.week_list.itemSelectionChanged.connect(self.selection_changed)
         self.new_week_btn.clicked.connect(self.add_week)
         self.del_week_btn.clicked.connect(self.delete_week)
-        self.sort_weeks_btn.clicked.connect(self.refresh_weeks)
+        self.sort_weeks_btn.clicked.connect(self.sort_weeks)
         
         self.weeks = []
         self.refresh_weeks()
+    
+    def get_dark_stylesheet(self):
+        """Return dark theme stylesheet for week widget"""
+        return """
+        QWidget {
+            background-color: #2a2b2a;
+            color: #D6D6D6;
+            font-size: 11px;
+        }
+        
+        QListWidget {
+            background-color: #2a2b2a;
+            color: #D6D6D6;
+            border: 1px solid #1f201f;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        
+        QListWidget::item {
+            padding: 4px;
+            border-radius: 2px;
+            margin: 1px;
+        }
+        
+        QListWidget::item:selected {
+            background-color: #33342E;
+            color: #D6D6D6;
+        }
+        
+        QPushButton {
+            background-color: #2a2b2a;
+            color: #D6D6D6;
+            border: 1px solid #1f201f;
+            border-radius: 4px;
+            padding: 1px 2px;
+            font-size: 11px;
+            min-height: 16px;
+        }
+        
+        QPushButton:hover {
+            background-color: #33342E;
+        }
+        
+        QPushButton:pressed {
+            background-color: #1f201f;
+        }
+        
+        QDateEdit {
+            background-color: #2a2b2a;
+            color: #D6D6D6;
+            border: 1px solid #1f201f;
+            border-radius: 2px;
+            padding: 3px;
+            font-size: 11px;
+        }
+        
+        QLabel {
+            color: #D6D6D6;
+            font-size: 11px;
+        }
+        """
     
     def selection_changed(self):
         week_id, week_label = self.current_week_id()
@@ -82,6 +142,22 @@ class WeekWidget(QtWidgets.QWidget):
         self.weeks = self.get_weeks()
         for week_id, week_label in self.weeks:
             self.week_list.addItem(week_label)
+    
+    def sort_weeks(self):
+        """Sort weeks chronologically and preserve current selection"""
+        # Remember current selection
+        current_week_id, current_week_label = self.current_week_id()
+        
+        # Refresh the weeks (which sorts them)
+        self.refresh_weeks()
+        
+        # Restore selection if it existed
+        if current_week_id is not None:
+            self.select_week_by_id(current_week_id)
+        
+        # Show notification that weeks were sorted
+        if hasattr(self.main_window, 'toaster_manager'):
+            self.main_window.toaster_manager.show_info("Weeks sorted chronologically", "Weeks Sorted", 2000)
     
     def current_week_id(self):
         row = self.week_list.currentRow()
@@ -154,6 +230,10 @@ class WeekWidget(QtWidgets.QWidget):
             if self.week_list.item(i).text() == week_label:
                 self.week_list.setCurrentRow(i)
                 break
+        
+        # Refresh the analysis widget's week combo to mirror the changes
+        if hasattr(self.main_window, 'analysis_widget'):
+            self.main_window.analysis_widget.refresh_week_combo()
     
     def delete_week(self):
         week_id, week_label = self.current_week_id()
@@ -209,6 +289,10 @@ class WeekWidget(QtWidgets.QWidget):
             self.week_list.setCurrentRow(0)
         else:
             self.weekChanged.emit(None, None)
+        
+        # Refresh the analysis widget's week combo to mirror the changes
+        if hasattr(self.main_window, 'analysis_widget'):
+            self.main_window.analysis_widget.refresh_week_combo()
     
     def get_weeks(self):
         conn = sqlite3.connect(DB_FILE)
@@ -223,11 +307,22 @@ class WeekWidget(QtWidgets.QWidget):
             try:
                 # Extract start date from format "dd/MM/yyyy - dd/MM/yyyy"
                 start_date_str = week_label.split(" - ")[0]
-                # Parse the date (dd/MM/yyyy format)
-                day, month, year = map(int, start_date_str.split("/"))
-                return datetime(year, month, day)
-            except (ValueError, IndexError, AttributeError):
-                # If parsing fails, use a very old date to put malformed entries at the beginning
+                
+                # Try parsing multiple date formats
+                date_formats = ["%d/%m/%Y", "%m/%d/%Y", "%Y-%m-%d", "%d-%m-%Y"]
+                
+                for fmt in date_formats:
+                    try:
+                        return datetime.strptime(start_date_str, fmt)
+                    except ValueError:
+                        continue # Try next format if this one fails
+                
+                # If no format matched, fall back to a very old date and print a warning
+                print(f"Warning: Could not parse date from week label '{week_label}'. Using default date.")
+                return datetime(1900, 1, 1)
+            except (ValueError, IndexError, AttributeError) as e:
+                # If splitting or other initial operations fail, it's a completely malformed label
+                print(f"Warning: Malformed week label '{week_label}'. Error: {e}. Using default date.")
                 return datetime(1900, 1, 1)
         
         # Sort by parsed start date

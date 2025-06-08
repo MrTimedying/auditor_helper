@@ -13,7 +13,8 @@ def build_app():
             'pyi-makespec', 
             '--name=Auditor Helper', 
             '--windowed',
-            '--icon=helper_icon.ico',
+            '--icon=icons/helper_icon.ico',
+            '--add-data=icons;icons',
             'main.py'
         ])
     

@@ -26,6 +26,7 @@ class TaskGridItem(QtWidgets.QTableWidgetItem):
 class TaskGrid(QtWidgets.QTableWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("TaskTable") # Set object name
         self.current_week_id = None
         self.main_window = parent  # Store direct reference to main window
         self.selected_tasks = set()  # Store selected task IDs
@@ -512,6 +513,7 @@ class FeedbackDialog(QtWidgets.QDialog):
         self.setWindowTitle("Edit Feedback")
         self.resize(600, 400)
         
+        # Apply dark theme styling (now handled globally by main.py ThemeManager)
         layout = QtWidgets.QVBoxLayout(self)
         
         # Text editor

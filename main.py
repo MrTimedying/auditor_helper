@@ -1,6 +1,7 @@
 import sys
 import os
 from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6.QtCore import QPropertyAnimation
 
 # Import our new components
 from week_widget import WeekWidget
@@ -10,12 +11,24 @@ from db_schema import init_db, migrate_time_columns
 from export_data import export_week_to_csv, export_all_weeks_to_excel
 from import_data import main_import
 from toaster import ToasterManager
+from theme_manager import ThemeManager
+from options_dialog import OptionsDialog
+
+basedir = os.path.dirname(__file__)
+
+try:
+    from ctypes import windll  # Only exists on Windows.
+    myappid = 'com.auditorhelper.app' # Arbitrary string
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Auditor Helper")
+        self.setWindowTitle("Auditor Helper") # Set proper title instead of empty string
         self.resize(1200, 800)
+        self.setWindowIcon(QtGui.QIcon(os.path.join(basedir, "icons", "app_icon.ico")))
         
         # Initialize the database
         init_db()
@@ -26,6 +39,9 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Set default dark mode
         self.dark_mode = True
+        
+        # Initialize ThemeManager
+        self.theme_manager = ThemeManager()
         
         # Create central widget and main layout
         central_widget = QtWidgets.QWidget()
@@ -40,14 +56,36 @@ class MainWindow(QtWidgets.QMainWindow):
         # Add spacer to push button to the right
         top_bar_layout.addStretch()
         
-        # Theme toggle button
-        self.theme_btn = QtWidgets.QPushButton("☀️ Light Mode")
-        self.theme_btn.setToolTip("Switch between dark and light mode")
-        self.theme_btn.clicked.connect(self.toggle_theme)
-        self.update_theme_button()
-        top_bar_layout.addWidget(self.theme_btn)
+        # Week sidebar toggle button
+        self.toggle_week_sidebar_btn = QtWidgets.QPushButton("⬅️ Hide Weeks")
+        self.toggle_week_sidebar_btn.setToolTip("Toggle visibility of the Weeks sidebar")
+        self.toggle_week_sidebar_btn.clicked.connect(self.toggle_week_sidebar)
+        top_bar_layout.addWidget(self.toggle_week_sidebar_btn)
         
         main_layout.addWidget(top_bar)
+        
+        # Initialize week widget and dock widget
+        self.week_widget = WeekWidget()
+        self.week_widget.main_window = self  # Set the main window reference
+        self.week_dock = QtWidgets.QDockWidget("Weeks", self)
+        self.week_dock.setWidget(self.week_widget)
+        self.week_dock.setAllowedAreas(
+            QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea
+        )
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.week_dock)
+
+        # Week sidebar animation
+        self.week_animation_min_width = QPropertyAnimation(self.week_dock, b"minimumWidth", self)
+        self.week_animation_max_width = QPropertyAnimation(self.week_dock, b"maximumWidth", self)
+        self.week_animation_min_width.setDuration(200) # milliseconds
+        self.week_animation_max_width.setDuration(200) # milliseconds
+
+        # Connect animation finished signal to a single handler
+        self.week_animation_min_width.finished.connect(self._on_animation_finished)
+        self.week_animation_max_width.finished.connect(self._on_animation_finished)
+
+        # Initialize analysis widget here as a standalone window
+        self.analysis_widget = AnalysisWidget()
         
         # Create menu bar
         self.create_menu_bar()
@@ -72,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Set delete button style to be red-ish
         self.delete_rows_btn.setStyleSheet(
-            "QPushButton { background-color: #ff6b6b; color: white; border-radius: 4px; }"
+            "QPushButton { background-color: #ff6b6b; color: white; border: 1px solid #1f201f; border-radius: 4px; padding: 1px 2px; font-size: 11px; }"
             "QPushButton:hover { background-color: #ff4747; }"
             "QPushButton:disabled { background-color: #ffb1b1; color: #f0f0f0; }"
         )
@@ -99,207 +137,7 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def apply_theme(self):
         """Apply the current theme (dark or light) to the application"""
-        app = QtWidgets.QApplication.instance()
-        
-        if self.dark_mode:
-            # Dark mode palette based on agent.json
-            palette = QtGui.QPalette()
-            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(0x38, 0x37, 0x35))  # #383735
-            palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
-            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(0x38, 0x37, 0x35))  # #383735
-            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(0x2a, 0x29, 0x27))  # Slightly darker than base
-            palette.setColor(QtGui.QPalette.Text, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
-            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(0x38, 0x37, 0x35))  # #383735
-            palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
-            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(0x1a, 0x19, 0x18))  # #1a1918 (title bar color)
-            palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(0xf1, 0xf1, 0xf1))  # #f1f1f1
-            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(0x8a, 0x89, 0x87))  # Lighter variant of base
-            
-            # For Qt 5.12+ - handle PlaceholderText
-            palette.setColor(QtGui.QPalette.PlaceholderText, QtGui.QColor(0xb0, 0xb0, 0xb0))  # Light gray
-            
-            # Additional dark mode styles
-            app.setStyleSheet("""
-                QToolTip { 
-                    color: #f1f1f1; 
-                    background-color: #1a1918; 
-                    border: 1px solid #1a1918; 
-                }
-                QTableView {
-                    gridline-color: #4a4a48;
-                    background-color: #383735;
-                    border: 1px solid #1a1918;
-                    border-radius: 2px;
-                }
-                QHeaderView::section { 
-                    background-color: #1a1918; 
-                    color: #f1f1f1; 
-                    border: 1 px solid #1a1918;
-                }
-                QTabBar::tab {
-                    background: #1a1918;
-                    color: #b1b1b1;
-                    border: 1 px solid #1a1918;
-                    padding: 5px;
-                }
-                QTabBar::tab:selected {
-                    background: #383735;
-                    color: #f1f1f1;
-                    border: 1 px solid #1a1918;
-                }
-                QFrame, QWidget {
-                    background-color: #383735;
-                    color: #f1f1f1;
-                    border: 1 px solid #1a1918;
-                }
-                QDialog, QMainWindow {
-                    background-color: #383735;
-                }
-                QPushButton {
-                    background-color: #1a1918;
-                    color: #f1f1f1;
-                    border: solid 1px #1a1918;
-                    padding: 5px;
-                    border-radius: 4px;
-                    
-                }
-                QPushButton:hover {
-                    background-color: #2a2928;
-                }
-                QPushButton:pressed {
-                    background-color: #3a3938;
-                }
-                QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit {
-                    background-color: #2a2928;
-                    color: #f1f1f1;
-                    border: 1px solid #1a1918;
-                    border-radius: 2px;
-                    padding: 3px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #2a2928;
-                    color: #f1f1f1;
-                    selection-background-color: #3a3938;
-                }
-                QScrollBar {
-                    background-color: #383735;
-                }
-                QScrollBar::handle {
-                    background-color: #1a1918;
-                }
-                QScrollBar::handle:hover {
-                    background-color: #2a2928;
-                }
-                QListWidget {
-                    background-color: #383735;
-                    color: #f1f1f1;
-                    border: 1px solid #1a1918;
-                    border-radius: 2px;
-                }
-                QListWidget::item:selected {
-                    background-color: #1a1918;
-                    color: #f1f1f1;
-                }
-            """)
-        else:
-            # Light mode palette based on agent.json
-            palette = QtGui.QPalette()
-            palette.setColor(QtGui.QPalette.Window, QtGui.QColor(0xf5, 0xf1, 0xe6))  # #f5f1e6
-            palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(0, 0, 0))  # #000
-            palette.setColor(QtGui.QPalette.Base, QtGui.QColor(0xf5, 0xf1, 0xe6))  # #f5f1e6
-            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(0xf0, 0xec, 0xe1))  # Slightly darker than base
-            palette.setColor(QtGui.QPalette.Text, QtGui.QColor(0, 0, 0))  # #000
-            palette.setColor(QtGui.QPalette.Button, QtGui.QColor(0xf5, 0xf1, 0xe6))  # #f5f1e6
-            palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(0, 0, 0))  # #000
-            palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(0xf5, 0xee, 0xdc))  # #f5eedc (title bar color)
-            palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(0, 0, 0))  # #000
-            palette.setColor(QtGui.QPalette.Link, QtGui.QColor(0xd5, 0xd1, 0xc6))  # Darker variant of base
-            
-            # For Qt 5.12+ - handle PlaceholderText
-            palette.setColor(QtGui.QPalette.PlaceholderText, QtGui.QColor(0x80, 0x80, 0x80))  # Medium gray
-            
-            # Light mode additional styles
-            app.setStyleSheet("""
-                QToolTip { 
-                    color: #000; 
-                    background-color: #f5eedc; 
-                    border: none; 
-                }
-                QTableView {
-                    gridline-color: #e5e1d6;
-                    background-color: #f5f1e6;
-                    border: 1px solid #e5e1d6;
-                    border-radius: 2px;
-                }
-                QHeaderView::section { 
-                    background-color: #f5eedc; 
-                    color: #000; 
-                    border: none;
-                }
-                QTabBar::tab {
-                    background: #f5eedc;
-                    color: #333333;
-                    border: none;
-                    padding: 5px;
-                }
-                QTabBar::tab:selected {
-                    background: #f5f1e6;
-                    color: #000;
-                }
-                QFrame, QWidget {
-                    background-color: #f5f1e6;
-                    color: #000;
-                }
-                QDialog, QMainWindow {
-                    background-color: #f5f1e6;
-                }
-                QPushButton {
-                    background-color: #f5eedc;
-                    color: #000;
-                    border: none;
-                    padding: 5px;
-                    border-radius: 4px;
-                }
-                QPushButton:hover {
-                    background-color: #e5decc;
-                }
-                QPushButton:pressed {
-                    background-color: #d5cebc;
-                }
-                QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDateEdit {
-                    background-color: #ffffff;
-                    color: #000;
-                    border: 1px solid #e5e1d6;
-                    border-radius: 2px;
-                    padding: 3px;
-                }
-                QComboBox QAbstractItemView {
-                    background-color: #ffffff;
-                    color: #000;
-                    selection-background-color: #f5eedc;
-                }
-                QScrollBar {
-                    background-color: #f5f1e6;
-                }
-                QScrollBar::handle {
-                    background-color: #f5eedc;
-                }
-                QScrollBar::handle:hover {
-                    background-color: #e5decc;
-                }
-                QListWidget {
-                    background-color: #f5f1e6;
-                    color: #000;
-                    border: 1px solid #e5e1d6;
-                    border-radius: 2px;
-                }
-                QListWidget::item:selected {
-                    background-color: #f5eedc;
-                    color: #000;
-                }
-            """)
-            
-        app.setPalette(palette)
+        self.theme_manager.apply_theme(self.dark_mode)
         
         # Keep the delete button style consistent regardless of theme
         self.delete_rows_btn.setStyleSheet(
@@ -325,10 +163,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_theme_button(self):
         """Update the theme button text based on current mode"""
-        if self.dark_mode:
-            self.theme_btn.setText("☀️")
-        else:
-            self.theme_btn.setText("🌙")
+        # This method is now called from OptionsDialog to update the main window's internal state
+        # It no longer updates a button in the main window directly.
+        pass
     
     def create_menu_bar(self):
         # Create menu bar
@@ -358,43 +195,41 @@ class MainWindow(QtWidgets.QMainWindow):
         import_action.triggered.connect(self.import_data)
         import_menu.addAction(import_action)
         
+        # Add Preferences action
+        preferences_action = QtGui.QAction("Preferences", self)
+        preferences_action.triggered.connect(self.show_preferences)
+        file_menu.addSeparator()
+        file_menu.addAction(preferences_action)
+
         # Add exit action
         exit_action = QtGui.QAction("Exit", self)
         exit_action.triggered.connect(self.close)
         file_menu.addSeparator()
         file_menu.addAction(exit_action)
+        
+        # View menu
+        view_menu = menu_bar.addMenu("View")
+        view_menu.addAction(self.week_dock.toggleViewAction())
+        
+        # Add new action to open Analysis Widget as a separate window
+        open_analysis_action = QtGui.QAction("Data Analysis Window", self)
+        open_analysis_action.triggered.connect(self.show_analysis_widget)
+        view_menu.addAction(open_analysis_action)
     
     def create_dock_widgets(self):
-        # Week widget dock
-        self.week_widget = WeekWidget()
-        self.week_widget.main_window = self  # Set the main window reference
-        week_dock = QtWidgets.QDockWidget("Weeks", self)
-        week_dock.setWidget(self.week_widget)
-        week_dock.setAllowedAreas(
-            QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea
-        )
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, week_dock)
-        
-        # Analysis widget dock
-        self.analysis_widget = AnalysisWidget()
-        analysis_dock = QtWidgets.QDockWidget("Data Analysis", self)
-        analysis_dock.setWidget(self.analysis_widget)
-        analysis_dock.setAllowedAreas(
-            QtCore.Qt.BottomDockWidgetArea | QtCore.Qt.TopDockWidgetArea
-        )
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, analysis_dock)
-        
-        # Add to View menu
-        view_menu = self.menuBar().addMenu("View")
-        view_menu.addAction(week_dock.toggleViewAction())
-        view_menu.addAction(analysis_dock.toggleViewAction())
+        # This method is now empty as week_dock is created in __init__
+        pass
 
     def on_week_changed(self, week_id, week_label):
         self.current_week_id = week_id
         self.task_grid.refresh_tasks(week_id)
-        self.refresh_analysis()
+        # Note: Analysis widget is no longer automatically refreshed here
+        # Users must manually select the week in the analysis widget
         
-        # Update window title
+        # Refresh the week combo in analysis widget to mirror week widget changes
+        self.analysis_widget.refresh_week_combo()
+        
+        # Update window title with week label or default title
         if week_label:
             self.setWindowTitle(f"Auditor Helper - {week_label}")
         else:
@@ -403,7 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_task(self):
         if self.current_week_id is not None:
             self.task_grid.add_task(self.current_week_id)
-            self.refresh_analysis()
+            # Note: Analysis widget is no longer automatically refreshed
             # Show toaster notification
             self.toaster_manager.show_info("New task added successfully", "Task Added", 3000)
     
@@ -498,9 +333,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 
                 # Refresh UI
                 self.week_widget.refresh_weeks()
+                # Refresh the week combo in analysis widget to reflect imported weeks
+                self.analysis_widget.refresh_week_combo()
                 if self.current_week_id:
                     self.task_grid.refresh_tasks(self.current_week_id)
-                    self.refresh_analysis()
                 
                 # Show success toaster
                 self.toaster_manager.show_info(f"Data import from {filename} complete.", "Import Complete", 5000)
@@ -508,8 +344,62 @@ class MainWindow(QtWidgets.QMainWindow):
                 # Show error toaster
                 self.toaster_manager.show_error(f"Failed to import data: {str(e)}", "Import Failed", 5000)
 
+    def show_analysis_widget(self):
+        """Show the AnalysisWidget as a separate window"""
+        self.analysis_widget.show()
+
+    def toggle_week_sidebar(self):
+        """Toggle the visibility of the WeekWidget sidebar with animation"""
+        if self.week_animation_min_width.state() == QtCore.QAbstractAnimation.Running or \
+           self.week_animation_max_width.state() == QtCore.QAbstractAnimation.Running:
+            self.week_animation_min_width.stop()
+            self.week_animation_max_width.stop()
+
+        current_width = self.week_dock.width()
+        # Get the preferred width of the week_widget for showing
+        target_width = self.week_widget.sizeHint().width()
+        if not self.week_widget.sizeHint().isValid() or target_width == 0:
+            target_width = 250 # Fallback default width
+        hidden_width = 0
+
+        if self.week_dock.isVisible():
+            # Hiding the sidebar
+            self.week_animation_min_width.setStartValue(current_width)
+            self.week_animation_min_width.setEndValue(hidden_width)
+            self.week_animation_max_width.setStartValue(current_width)
+            self.week_animation_max_width.setEndValue(hidden_width)
+            
+            self.toggle_week_sidebar_btn.setText("➡️ Show Weeks")
+        else:
+            # Showing the sidebar
+            self.week_animation_min_width.setStartValue(hidden_width)
+            self.week_animation_min_width.setEndValue(target_width)
+            self.week_animation_max_width.setStartValue(hidden_width)
+            self.week_animation_max_width.setEndValue(target_width)
+
+            self.week_dock.show() # Show before animation starts
+            
+            self.toggle_week_sidebar_btn.setText("⬅️ Hide Weeks")
+        
+        self.week_animation_min_width.start()
+        self.week_animation_max_width.start()
+
+    def _on_animation_finished(self):
+        """Callback when animation finishes"""
+        # If the animation finished with width 0, then the dock was hidden
+        if self.week_dock.width() == 0:
+            self.week_dock.hide()
+
+    def show_preferences(self):
+        dialog = OptionsDialog(parent=self, theme_manager=self.theme_manager, initial_dark_mode=self.dark_mode)
+        dialog.exec()
+        self.dark_mode = dialog.dark_mode # Update main window's dark_mode based on dialog's final state
+        self.apply_theme() # Re-apply theme in case it was changed in the dialog
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
+    app.setApplicationDisplayName("") # Set empty application display name
+    app.setWindowIcon(QtGui.QIcon(os.path.join(basedir, "icons", "helper_icon.ico")))
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

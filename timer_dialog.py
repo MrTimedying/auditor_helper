@@ -35,6 +35,34 @@ class TimerDialog(QtWidgets.QDialog):
         self.setWindowFlags(QtCore.Qt.Window)  # Make it undocked
         self.resize(300, 200)
         
+        # Apply dark theme styling
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #33342E;
+                color: #D6D6D6;
+                font-size: 11px;
+            }
+            QPushButton {
+                background-color: #2a2b2a;
+                color: #D6D6D6;
+                border: 1px solid #1f201f;
+                border-radius: 4px;
+                padding: 1px 2px;
+                font-size: 11px;
+                min-height: 16px;
+            }
+            QPushButton:hover {
+                background-color: #33342E;
+            }
+            QPushButton:pressed {
+                background-color: #1f201f;
+            }
+            QPushButton:disabled {
+                background-color: #1f201f;
+                color: #808080;
+            }
+        """)
+        
         self.setup_ui()
         self.load_initial_duration()
         
@@ -48,9 +76,9 @@ class TimerDialog(QtWidgets.QDialog):
             QLabel {
                 font-size: 24px;
                 font-weight: bold;
-                background-color: #2a2a2a;
-                color: #ffffff;
-                border: 2px solid #444444;
+                background-color: #2a2b2a;
+                color: #D6D6D6;
+                border: 2px solid #1f201f;
                 border-radius: 8px;
                 padding: 10px;
             }
@@ -80,7 +108,7 @@ class TimerDialog(QtWidgets.QDialog):
         # Instructions
         instructions = QtWidgets.QLabel("Click on the time to edit it directly")
         instructions.setAlignment(QtCore.Qt.AlignCenter)
-        instructions.setStyleSheet("color: #666666; font-size: 12px;")
+        instructions.setStyleSheet("color: #D6D6D6; font-size: 11px;")
         layout.addWidget(instructions)
         
     def load_initial_duration(self):
