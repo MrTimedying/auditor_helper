@@ -1,4 +1,46 @@
 from PySide6 import QtCore, QtWidgets, QtGui
+from typing import Optional, Dict, Any
+
+class SuggestionListItem(QtWidgets.QListWidgetItem):
+    """Enhanced list item that supports suggestion indicators"""
+    
+    def __init__(self, text: str, suggestion_info: Optional[Dict[str, Any]] = None):
+        super().__init__(text)
+        self.suggestion_info = suggestion_info or {}
+        self._update_appearance()
+    
+    def _update_appearance(self):
+        """Update item appearance based on suggestion type"""
+        if not self.suggestion_info:
+            return
+        
+        suggestion_type = self.suggestion_info.get("type", "")
+        confidence = self.suggestion_info.get("confidence", 0.0)
+        
+        # Add suggestion indicators to text
+        original_text = self.text()
+        if "📊" in original_text or "📈" in original_text:
+            # Extract the base text without existing icons
+            base_text = original_text
+        else:
+            base_text = original_text
+        
+        if suggestion_type == "recommended":
+            if confidence > 0.8:
+                self.setText(f"⭐ {base_text}")  # Highly recommended
+                self.setToolTip(f"Highly recommended: {self.suggestion_info.get('reason', '')}")
+            else:
+                self.setText(f"✨ {base_text}")  # Recommended
+                self.setToolTip(f"Recommended: {self.suggestion_info.get('reason', '')}")
+        elif suggestion_type == "compatible":
+            self.setText(f"✓ {base_text}")  # Compatible
+            self.setToolTip(f"Compatible: {self.suggestion_info.get('reason', '')}")
+        elif suggestion_type == "warning":
+            self.setText(f"⚠️ {base_text}")  # Warning
+            self.setToolTip(f"Warning: {self.suggestion_info.get('reason', '')}")
+        elif suggestion_type == "alternative":
+            self.setText(f"💡 {base_text}")  # Alternative suggestion
+            self.setToolTip(f"Alternative: {self.suggestion_info.get('reason', '')}")
 
 class DragDropListWidget(QtWidgets.QListWidget):
     """Custom list widget with drag and drop functionality for variable selection"""
@@ -77,6 +119,10 @@ class DragDropListWidget(QtWidgets.QListWidget):
                 # Clear chart when X variable is changed
                 analysis_widget.chart_manager.clear_chart()
                 
+                # Trigger suggestion updates
+                if hasattr(analysis_widget, 'update_variable_suggestions'):
+                    analysis_widget.update_variable_suggestions()
+                
             elif self.list_type == "y_variables":
                 # Y variables can have multiple items (but check if already exists)
                 existing_vars = []
@@ -91,6 +137,10 @@ class DragDropListWidget(QtWidgets.QListWidget):
                     # Clear chart when Y variable is added
                     analysis_widget.chart_manager.clear_chart()
                     
+                    # Trigger suggestion updates
+                    if hasattr(analysis_widget, 'update_variable_suggestions'):
+                        analysis_widget.update_variable_suggestions()
+                
             elif self.list_type == "available":
                 # Return to available (if not already there)
                 existing_vars = []
@@ -142,6 +192,44 @@ class DragDropListWidget(QtWidgets.QListWidget):
                 
                 # Clear the chart when variables are removed
                 analysis_widget.chart_manager.clear_chart()
+                
+                # Trigger suggestion updates
+                if hasattr(analysis_widget, 'update_variable_suggestions'):
+                    analysis_widget.update_variable_suggestions()
+                
                 event.accept()
                 return
-        super().keyPressEvent(event) 
+        super().keyPressEvent(event)
+    
+    def add_variable_with_suggestion(self, variable_name: str, variable_type: str, 
+                                   display_name: str, suggestion_info: Optional[Dict[str, Any]] = None):
+        """Add a variable item with optional suggestion information"""
+        item = SuggestionListItem(display_name, suggestion_info)
+        item.setData(QtCore.Qt.UserRole, (variable_name, variable_type))
+        self.addItem(item)
+        return item
+    
+    def update_suggestions(self, suggestions: Dict[str, Dict[str, Any]]):
+        """Update suggestion indicators for existing items"""
+        for i in range(self.count()):
+            item = self.item(i)
+            if isinstance(item, SuggestionListItem):
+                variable_name, _ = item.data(QtCore.Qt.UserRole)
+                if variable_name in suggestions:
+                    item.suggestion_info = suggestions[variable_name]
+                    item._update_appearance()
+    
+    def clear_suggestions(self):
+        """Clear all suggestion indicators from items"""
+        for i in range(self.count()):
+            item = self.item(i)
+            if isinstance(item, SuggestionListItem):
+                item.suggestion_info = {}
+                # Restore original text without suggestion icons
+                original_text = item.text()
+                # Remove suggestion icons
+                for icon in ["⭐", "✨", "✓", "⚠️", "💡"]:
+                    if original_text.startswith(icon + " "):
+                        original_text = original_text[2:]  # Remove icon and space
+                        break
+                item.setText(original_text) 

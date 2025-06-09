@@ -1,6 +1,8 @@
 import sqlite3
 from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6.QtMultimedia import QSoundEffect
 from datetime import datetime
+import os
 
 DB_FILE = "tasks.db"
 
@@ -10,7 +12,7 @@ class TimerDialog(QtWidgets.QDialog):
     Features start, pause, and reset buttons with toaster confirmation for reset.
     """
     
-    def __init__(self, parent=None, task_id=None, week_task_number=None):
+    def __init__(self, parent=None, task_id=None, week_task_number=None, time_limit_str="00:00:00"):
         super().__init__(parent)
         self.task_id = task_id
         self.parent_grid = parent
@@ -28,15 +30,23 @@ class TimerDialog(QtWidgets.QDialog):
         self.start_timestamp_for_new_task = None
         self.initial_duration_seconds = 0  # Store initial duration to check if changed
         
+        # Time limit alert variables
+        self.time_limit_seconds = 0
+        self.ninety_percent_threshold = -1  # -1 means no threshold, avoids alert
+        self.alert_triggered = False
+        
         if self.week_task_number is not None:
             self.setWindowTitle(f"Timer - Task #{self.week_task_number}")
         else:
             self.setWindowTitle(f"Timer - Task {task_id}") # Fallback to original if not found
         self.setWindowFlags(QtCore.Qt.Window)  # Make it undocked
         self.resize(300, 200)
-        
-        # Apply dark theme styling
-        self.setStyleSheet("""
+
+        # Store base directory for sound file
+        self.basedir = os.path.dirname(__file__)
+
+        # Define normal and alert styles
+        self.normal_style = """
             QDialog {
                 background-color: #33342E;
                 color: #D6D6D6;
@@ -51,29 +61,10 @@ class TimerDialog(QtWidgets.QDialog):
                 font-size: 11px;
                 min-height: 16px;
             }
-            QPushButton:hover {
-                background-color: #33342E;
-            }
-            QPushButton:pressed {
-                background-color: #1f201f;
-            }
-            QPushButton:disabled {
-                background-color: #1f201f;
-                color: #808080;
-            }
-        """)
-        
-        self.setup_ui()
-        self.load_initial_duration()
-        
-    def setup_ui(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        
-        # Timer display
-        self.time_display = QtWidgets.QLabel("00:00:00")
-        self.time_display.setAlignment(QtCore.Qt.AlignCenter)
-        self.time_display.setStyleSheet("""
-            QLabel {
+            QPushButton:hover { background-color: #33342E; }
+            QPushButton:pressed { background-color: #1f201f; }
+            QPushButton:disabled { background-color: #1f201f; color: #808080; }
+            QLabel#timeDisplay {
                 font-size: 24px;
                 font-weight: bold;
                 background-color: #2a2b2a;
@@ -82,7 +73,53 @@ class TimerDialog(QtWidgets.QDialog):
                 border-radius: 8px;
                 padding: 10px;
             }
-        """)
+        """
+        self.alert_style = """
+            QDialog {
+                background-color: #ff6b6b;
+                color: #FFFFFF;
+                font-size: 11px;
+            }
+            QPushButton {
+                background-color: #ff4747;
+                color: #FFFFFF;
+                border: 1px solid #ff0000;
+                border-radius: 4px;
+                padding: 1px 2px;
+                font-size: 11px;
+                min-height: 16px;
+            }
+            QPushButton:hover { background-color: #ff2b2b; }
+            QPushButton:pressed { background-color: #cc0000; }
+            QPushButton:disabled { background-color: #ffb1b1; color: #f0f0f0; }
+            QLabel#timeDisplay {
+                font-size: 24px;
+                font-weight: bold;
+                background-color: #ff4747;
+                color: #FFFFFF;
+                border: 2px solid #ff0000;
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """
+        
+        self.setup_ui()
+        self.load_initial_duration()
+        self.load_time_limit(time_limit_str)  # Load initial time limit
+        self.setup_sound_effect()  # Setup sound effect
+        self.setStyleSheet(self.normal_style)  # Apply initial style
+
+        # Connect to TaskGrid's timeLimitChanged signal
+        if self.parent_grid:
+            self.parent_grid.timeLimitChanged.connect(self.on_time_limit_changed)
+        
+    def setup_ui(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        
+        # Timer display
+        self.time_display = QtWidgets.QLabel("00:00:00")
+        self.time_display.setObjectName("timeDisplay")  # Set object name for styling
+        self.time_display.setAlignment(QtCore.Qt.AlignCenter)
         self.time_display.mousePressEvent = self.edit_time
         layout.addWidget(self.time_display)
         
@@ -138,6 +175,56 @@ class TimerDialog(QtWidgets.QDialog):
                 
             self.update_display()
     
+    def on_time_limit_changed(self, task_id, new_time_limit_str):
+        """Slot to receive time limit updates from TaskGrid."""
+        if task_id == self.task_id:
+            self.load_time_limit(new_time_limit_str)
+            # Immediately re-evaluate alert state in case the new limit changes it
+            self._check_and_apply_alert()
+
+    def load_time_limit(self, time_limit_str):
+        """Parse time limit string and calculate 90% threshold."""
+        try:
+            h, m, s = map(int, time_limit_str.split(':'))
+            total_limit_seconds = h * 3600 + m * 60 + s
+            
+            if total_limit_seconds > 0:  # Only set a threshold if the limit is positive
+                self.time_limit_seconds = total_limit_seconds
+                self.ninety_percent_threshold = int(self.time_limit_seconds * 0.9)
+            else:
+                self.time_limit_seconds = 0
+                self.ninety_percent_threshold = -1  # No threshold
+        except (ValueError, AttributeError):
+            self.time_limit_seconds = 0
+            self.ninety_percent_threshold = -1  # No threshold
+
+    def setup_sound_effect(self):
+        """Set up the sound effect for the alert."""
+        self.sound_effect = QSoundEffect(self)
+        sound_path = os.path.join(self.basedir, "icons", "alert.wav")
+        if os.path.exists(sound_path):
+            self.sound_effect.setSource(QtCore.QUrl.fromLocalFile(sound_path))
+            self.sound_effect.setVolume(0.7)  # Adjust volume as needed (0.0 to 1.0)
+        else:
+            print(f"Warning: Alert sound file not found at {sound_path}")
+
+    def _check_and_apply_alert(self):
+        """Internal method to check and apply alert style/sound."""
+        if (self.ninety_percent_threshold != -1 and not self.alert_triggered and 
+            self.total_seconds >= self.ninety_percent_threshold):
+            if self.sound_effect and self.sound_effect.source() != QtCore.QUrl():
+                self.sound_effect.play()
+            self.setStyleSheet(self.alert_style)  # Apply alert style
+            self.alert_triggered = True  # Prevent repeated alerts
+        elif self.total_seconds < self.ninety_percent_threshold and self.alert_triggered:
+            # If time drops below threshold (e.g. by manual edit), reset alert state
+            self.alert_triggered = False
+            self.setStyleSheet(self.normal_style)
+        elif self.ninety_percent_threshold == -1 and self.alert_triggered:
+            # If limit is removed while alert is active, reset style
+            self.alert_triggered = False
+            self.setStyleSheet(self.normal_style)
+    
     def update_display(self):
         """Update the timer display"""
         hours = int(self.total_seconds // 3600)
@@ -147,6 +234,7 @@ class TimerDialog(QtWidgets.QDialog):
         
         if self.is_running:
             self.total_seconds += 1
+            self._check_and_apply_alert()  # Check for alert condition
     
     def start_timer(self):
         """Start the timer"""
@@ -198,6 +286,8 @@ class TimerDialog(QtWidgets.QDialog):
         self.pause_timer()
         self.total_seconds = 0
         self.update_display()
+        self.alert_triggered = False  # Reset alert state
+        self.setStyleSheet(self.normal_style)  # Revert to normal style
     
     def edit_time(self, event):
         """Allow direct editing of the time display"""
@@ -213,6 +303,7 @@ class TimerDialog(QtWidgets.QDialog):
                 if 0 <= h < 100 and 0 <= m < 60 and 0 <= s < 60:
                     self.total_seconds = h * 3600 + m * 60 + s
                     self.update_display()
+                    self._check_and_apply_alert()  # Re-evaluate alert state after manual edit
                 else:
                     QtWidgets.QMessageBox.warning(
                         self, "Invalid Time", 

@@ -1,4 +1,67 @@
 # CHANGESLOG
+
+## v0.16.14-beta
+- **Analysis Widget - Intelligent Variable Suggestion System:**
+    - **Smart Variable Recommendations**: Implemented comprehensive suggestion engine that provides context-aware recommendations for variable selection based on data characteristics, semantic meaning, and chart type compatibility.
+    - **Dynamic Suggestion Indicators**: Added visual indicators (⭐ = Highly Recommended, ✨ = Recommended, ⚠️ = Warning) that appear next to variables in the Available Variables list with explanatory tooltips.
+    - **Contextual Awareness**: Suggestions update in real-time based on current X/Y variable selections and chosen chart type, providing progressively smarter recommendations as users build their charts.
+    - **Data-Driven Analysis**: Advanced variable analyzer examines data patterns including cardinality, distribution, null rates, outliers, and temporal characteristics to make informed suggestions.
+    - **Semantic Intelligence**: Recognition of variable meaning based on names (performance metrics, financial data, time series) with appropriate color coding and role suggestions.
+    - **Chart Type Compatibility**: Intelligent chart type suggestions with suitability scores and detailed reasoning based on selected variables and their characteristics.
+    - **Progressive User Guidance**: Real-time chart type recommendations panel showing top 3 suitable chart types with confidence scores and explanatory reasons.
+    - **Educational Tooltips**: Detailed hover information explaining why specific variables are recommended, with actionable suggestions for improvement.
+    - **Performance Considerations**: Efficient suggestion updates triggered only when variable selections change, maintaining smooth user experience.
+
+## v0.16.13-beta
+- **Analysis Widget - Enhanced Chart Styling System & Code Architecture:**
+    - **Professional Chart Theming**: Implemented comprehensive theming system with 4 built-in themes:
+        - **Professional (Default)**: Clean business theme with Nord color palette and balanced typography
+        - **Dark Mode**: Modern dark theme optimized for low-light environments with enhanced contrast
+        - **Minimal Clean**: Apple-inspired minimal design with subtle styling and reduced visual clutter
+        - **High Contrast**: Accessibility-focused theme with bold colors and increased text sizes for visually impaired users
+    - **Responsive Chart Design**: Adaptive layouts that automatically scale typography, margins, and sizing based on container dimensions with mobile, tablet, desktop, and large screen breakpoints.
+    - **Advanced Accessibility Features**: High contrast modes, colorblind-safe color palettes, and pattern fill options for enhanced accessibility compliance.
+    - **Live Theme Switching**: Instant chart regeneration when themes are changed through intuitive UI dropdown in chart controls.
+    - **Modular Code Architecture**: Major refactoring into focused, maintainable modules:
+        - `chart_validation.py`: Isolated validation logic (ValidationIssue, ChartValidationEngine)
+        - `chart_styling.py`: Complete styling system (ChartStyleManager, ResponsiveChartManager, ChartTheme)
+        - `chart_manager.py`: Streamlined chart coordination integrating styling and validation systems
+    - **Enhanced Color Management**: Seamless integration of semantic color system with theme-based palettes ensuring consistent variable colors across all themes.
+    - **Improved Code Maintainability**: Clear separation of concerns, comprehensive type hints, and detailed documentation throughout the styling system for easier future development.
+
+## v0.16.12-beta
+- **Analysis Widget - Comprehensive Error Handling & Validation System:**
+    - **Chart Validation Engine**: Implemented comprehensive validation system that checks data quality, variable combinations, chart type compatibility, and performance considerations before chart generation.
+    - **Progressive Error Disclosure**: Enhanced user experience with informative error messages, warnings, and actionable suggestions instead of generic "failed" messages.
+    - **Smart Validation Rules**: Added chart-specific validation (e.g., Pie charts require categorical X-axis and single Y variable, Scatter plots work better with quantitative variables).
+    - **Data Quality Checks**: Automatic detection of empty datasets, null variables, extreme outliers, and insufficient data with specific guidance for each issue.
+    - **Pre-generation Guidance**: Shows warnings for potentially problematic combinations (too many Y variables, inappropriate chart types) with option to proceed.
+    - **Enhanced User Feedback**: Replaced basic error dialogs with detailed messages including specific suggestions, alternative approaches, and educational content.
+    - **Loading States**: Added visual feedback during chart generation with progress indicators and button state management.
+    - **Graceful Error Recovery**: Comprehensive exception handling ensures the application remains stable even when unexpected errors occur.
+
+## v0.16.11-beta
+- **Analysis Widget - Semantic Color Management System:**
+    - **Intelligent Color Assignment**: Implemented semantic color management system that assigns meaningful, consistent colors to chart variables based on their semantic meaning.
+    - **Semantic Mappings**: Variables now get appropriate colors - Red for failure metrics (fail_rate, error_rate), Green for financial metrics (total_earnings, revenue), Blue for time metrics (duration, total_time), Orange for performance scores, Purple for counts, and Dark Orange for percentages.
+    - **Consistency Across Charts**: Each variable maintains the same color across all chart types and sessions, improving user recognition and mental model building.
+    - **Accessibility-Friendly Fallback**: Variables without semantic meaning use a curated, color-blind accessible palette ensuring good visual distinction.
+    - **Enhanced Visual Quality**: Improved line chart visibility with slightly thicker lines (2px) and better color contrast.
+
+## v0.16.10-beta
+- **Analysis Widget - Charting Fixes (Week & Composite Variables):**
+    - **Week Selection Charting Fix**: Resolved issue where charts would not display data when selecting a specific week. The date parsing logic in `analysis_module/data_manager.py` was updated to correctly handle week labels formatted with hyphens (`dd-MM-yyyy`) in addition to slashes (`dd/MM/yyyy`).
+    - **Composite Metric X-Axis Fix**: Fixed a critical bug where selecting a composite metric (e.g., "Total Time", "Fail Rate") as the X-axis variable would cause SQL errors and prevent charts from rendering. The `get_aggregated_chart_data` method in `analysis_module/data_manager.py` now correctly identifies and handles these composite metrics by grouping by `date_audited` and calculating the X-axis values for display.
+    - **Improved Error Logging**: Added `analysis_module/common_errors_log.md` to document common issues, their root causes, and solutions for easier debugging and maintenance.
+
+## v0.16.9-beta
+- **Timer Dialog - Real-time Time Limit Alert:**
+    - Implemented a real-time alert system in the `TimerDialog` that triggers when the timer reaches 90% of the `Time Limit` set in the `TaskGrid`.
+    - **Real-time Updates:** The `TimerDialog` now dynamically updates its alert threshold if the `Time Limit` is changed in the `TaskGrid` while the timer is running, using `TaskGrid`'s new `timeLimitChanged` signal.
+    - **Visual Alert:** The `TimerDialog`'s background and button styles change to a prominent red color upon alert.
+    - **Audio Alert:** A distinct beep sound plays when the 90% threshold is reached.
+    - **Robust Handling:** Addresses edge cases for empty/invalid time limits (no alert triggered), manual time edits (alert state re-evaluated), and timer resets (alert state and styling reset).
+
 ## v0.16.8-beta
 - **Options/Preferences Window:**
     - Implemented a new Preferences dialog accessible from `File > Preferences`.

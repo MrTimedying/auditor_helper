@@ -46,6 +46,7 @@ class DataManager:
 
     def get_chart_data(self, x_variable, y_variables, current_week_id, current_start_date, current_end_date):
         """Get data for charting based on selected variables"""
+        conn = None
         try:
             conn = sqlite3.connect(DB_FILE)
             cursor = conn.cursor()
@@ -56,18 +57,29 @@ class DataManager:
                 cursor.execute("SELECT week_label FROM weeks WHERE id = ?", (current_week_id,))
                 week_result = cursor.fetchone()
                 if not week_result:
-                    conn.close()
                     return []
                 
                 week_label = week_result[0]
                 try:
                     start_date_str, end_date_str = week_label.split(" - ")
-                    # Dates are in dd/MM/yyyy format
-                    start_date = datetime.strptime(start_date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
-                    end_date = datetime.strptime(end_date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
-                except (ValueError, IndexError):
+                    # Try multiple date formats - first try dd-MM-yyyy, then dd/MM/yyyy
+                    date_formats = ['%d-%m-%Y', '%d/%m/%Y']
+                    start_date = None
+                    end_date = None
+                    
+                    for fmt in date_formats:
+                        try:
+                            start_date = datetime.strptime(start_date_str, fmt).strftime('%Y-%m-%d')
+                            end_date = datetime.strptime(end_date_str, fmt).strftime('%Y-%m-%d')
+                            break  # Success, exit the format loop
+                        except ValueError:
+                            continue  # Try next format
+                    
+                    if start_date is None or end_date is None:
+                        raise ValueError(f"Could not parse dates with any known format")
+                    
+                except (ValueError, IndexError) as e:
                     # Fallback or error handling for malformed week_label
-                    conn.close()
                     return []
                 
                 where_clause = "WHERE date_audited BETWEEN ? AND ?"
@@ -92,7 +104,8 @@ class DataManager:
             if any(var in ['total_time', 'average_time', 'time_limit_usage', 'fail_rate', 'bonus_tasks_count', 'total_earnings'] 
                    for var, _ in [x_variable] + y_variables):
                 # Need to aggregate data
-                return self.get_aggregated_chart_data(x_variable, y_variables, where_clause, params, cursor)
+                result = self.get_aggregated_chart_data(x_variable, y_variables, where_clause, params, cursor)
+                return result
             else:
                 # Direct query for raw data - need to convert strings to numbers
                 query = f"SELECT {', '.join(select_fields)} FROM tasks {where_clause}"
@@ -112,25 +125,35 @@ class DataManager:
                             converted_row.append(converted_value)
                     converted_data.append(tuple(converted_row))
                 
-                conn.close()
                 return converted_data
                 
         except sqlite3.Error as e:
             print(f"Database error in get_chart_data: {e}")
             return []
+        except Exception as e:
+            print(f"Unexpected error in get_chart_data: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
     
     def get_aggregated_chart_data(self, x_variable, y_variables, where_clause, params, cursor):
         """Get aggregated data for composite metrics"""
         x_var_name, x_var_type = x_variable
         
-        # Group by X variable
-        if x_var_name in ['date_audited', 'week_id']:
-            group_by_field = x_var_name
-        elif x_var_name in ['project_name', 'locale']:
+        # Group by X variable - handle composite metrics that don't exist as database columns
+        if x_var_name in ['date_audited', 'week_id', 'project_name', 'locale', 'duration', 'time_limit', 'score', 'bonus_paid']:
+            # These are actual database columns
             group_by_field = x_var_name
         else:
-            # For numeric X variables, we might need to bin them
-            group_by_field = x_var_name
+            # For composite metrics as X variables, we need to group by a different field
+            # For now, group by date_audited as a fallback, but this needs special handling
+            if x_var_name in ['total_time', 'average_time', 'time_limit_usage', 'fail_rate', 'bonus_tasks_count', 'total_earnings']:
+                # For composite metrics as X variable, group by date to create time series
+                group_by_field = 'date_audited'
+            else:
+                # Fallback for unknown variables
+                group_by_field = 'date_audited'
         
         # Build aggregation query - get raw data first, then process in Python since duration/time_limit are strings
         query = f"""
@@ -224,7 +247,24 @@ class DataManager:
             total_earnings = (regular_hours * hourly_rate) + (bonus_hours * hourly_rate * 1.5)
             
             # Build row data for selected variables
-            row_data = [x_value]  # X variable value
+            # Handle X variable value - if it's a composite metric, calculate it
+            if x_var_name == 'total_time':
+                x_display_value = total_time
+            elif x_var_name == 'average_time':
+                x_display_value = average_time
+            elif x_var_name == 'time_limit_usage':
+                x_display_value = time_limit_usage
+            elif x_var_name == 'fail_rate':
+                x_display_value = fail_rate
+            elif x_var_name == 'bonus_tasks_count':
+                x_display_value = bonus_tasks_count
+            elif x_var_name == 'total_earnings':
+                x_display_value = total_earnings
+            else:
+                # For raw database columns, use the actual value
+                x_display_value = x_value
+            
+            row_data = [x_display_value]  # X variable value
             
             for y_var_name, y_var_type in y_variables:
                 if y_var_name == 'total_time':

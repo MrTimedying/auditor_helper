@@ -24,6 +24,9 @@ class TaskGridItem(QtWidgets.QTableWidgetItem):
         pass
 
 class TaskGrid(QtWidgets.QTableWidget):
+    # Define custom signal for time limit changes
+    timeLimitChanged = QtCore.Signal(int, str)  # task_id, new_time_limit_string
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("TaskTable") # Set object name
@@ -166,6 +169,15 @@ class TaskGrid(QtWidgets.QTableWidget):
             
             # Update the database
             self.update_task_field(task_id, field_name, cell_value)
+            
+            # Emit signal if time_limit column was changed
+            if field_name == "time_limit":
+                # Ensure the value is valid before emitting
+                if self.is_valid_time_format(cell_value):
+                    self.timeLimitChanged.emit(task_id, cell_value)
+                else:
+                    # If invalid, emit with default value
+                    self.timeLimitChanged.emit(task_id, "00:00:00")
     
     def update_task_field(self, task_id, field_name, value):
         conn = sqlite3.connect(DB_FILE)
@@ -444,12 +456,17 @@ class TaskGrid(QtWidgets.QTableWidget):
     def open_timer_dialog(self, task_id):
         """Open the timer dialog for the specified task"""
         week_task_number = None
+        time_limit_str = "00:00:00"  # Default value
+        
         for row_idx, task in enumerate(self.tasks):
             if task[0] == task_id:
                 week_task_number = row_idx + 1 # 1-based indexing
+                # Get the time_limit string from the task data
+                # task[6] corresponds to 'time_limit' in the fetched tuple
+                time_limit_str = task[6] if len(task) > 6 and task[6] else "00:00:00"
                 break
         
-        dialog = TimerDialog(self, task_id, week_task_number=week_task_number)
+        dialog = TimerDialog(self, task_id, week_task_number=week_task_number, time_limit_str=time_limit_str)
         dialog.show()  # Use show() instead of exec() to make it non-modal
 
 

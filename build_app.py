@@ -7,19 +7,22 @@ def build_app():
     """Build the application using PyInstaller"""
     print("Building application...")
     
+    # Construct the absolute path to the icon
+    icon_path = os.path.join(os.path.dirname(__file__), 'icons', 'helper_icon.ico')
+
     # Check if spec file exists, otherwise create it using pyi-makespec
-    if not os.path.exists('auditor_helper.spec'):
+    if not os.path.exists('Auditor Helper.spec'):
         subprocess.run([
             'pyi-makespec', 
             '--name=Auditor Helper', 
             '--windowed',
-            '--icon=icons/helper_icon.ico',
+            f'--icon={icon_path}',
             '--add-data=icons;icons',
             'main.py'
         ])
     
     # Run PyInstaller
-    result = subprocess.run(['pyinstaller', 'auditor_helper.spec'])
+    result = subprocess.run(['pyinstaller', 'Auditor Helper.spec'])
     
     if result.returncode == 0:
         print("Build successful! The application is in the 'dist/Auditor Helper' directory.")
@@ -33,4 +36,4 @@ if __name__ == "__main__":
     # On macOS/Linux:
     # source venv/bin/activate
 
-    build_app() 
+    build_app()

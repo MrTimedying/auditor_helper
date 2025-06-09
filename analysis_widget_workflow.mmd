@@ -1,0 +1,34 @@
+graph TD;
+    A[User Opens Analysis Widget] --> B{Selects Time Range/Week};
+    B --> C[DataManager.get_tasks_data_by_week/time_range];
+    C --> D[AnalysisWidget.populate_numerical_statistics];
+    D --> E[Tables Populated with Data];
+
+    F[User Navigates to Graphs Tab] --> G[AnalysisWidget.populate_available_variables];
+    G --> H[DragDropListWidget Populated (Task 3: Static Tags Added)];
+    H --> I{User Drags Variables to X/Y Axis};
+    I --> J{User Selects Chart Type};
+    J --> K[User Clicks 'Generate Chart'];
+    K --> L[AnalysisWidget.get_chart_data];
+    L --> M[DataManager.get_chart_data];
+    M --> N{ChartManager.create_chart};
+    N --> O[Chart Rendered (Task 1: Dotted Grid; Task 2: Random Colors)];
+
+    subgraph Task 3: Variable Suggestion System (Idea A)
+        subgraph Populate Available Variables
+            G_sub[AnalysisWidget.populate_available_variables] --> H_sub[Add Suggestion Tags to Variable List];
+        end
+        subgraph Drag & Drop List Widget
+            H_sub --> I_sub[DragDropListWidget Displays Tags];
+        end
+    end
+
+    subgraph Task 1: Line Graph Grid Style
+        N_sub_1[ChartManager.create_chart] --> N_sub_1_a[Access Chart Axes];
+        N_sub_1_a --> N_sub_1_b[Set Grid Line Pen Style (Dotted, Subtle Color)];
+    end
+
+    subgraph Task 2: Randomize Line Colors
+        N_sub_2[ChartManager.create_chart] --> N_sub_2_a[Generate Random Colors for Y-Series];
+        N_sub_2_a --> N_sub_2_b[Assign Colors to QLineSeries];
+    end 

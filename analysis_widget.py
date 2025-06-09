@@ -1,5 +1,6 @@
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCharts import QChart, QChartView
+from typing import Dict, Any
 import os # Added for path handling
 
 from analysis_module.drag_drop_list_widget import DragDropListWidget
@@ -59,6 +60,13 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         
         # Initialize ChartManager after chart_view is created
         self.chart_manager = ChartManager(self.chart_view)
+        
+        # Initialize intelligent suggestion system
+        from analysis_module.variable_suggestions import IntelligentVariableSuggester
+        self.suggestion_engine = IntelligentVariableSuggester()
+        
+        # Populate theme combo with available themes
+        self.populate_theme_combo()
         
         # Initialize data
         self.current_week_id = None
@@ -272,6 +280,12 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         data_types_help.setWordWrap(True)
         variable_layout.addWidget(data_types_help)
         
+        # Add suggestion legend
+        suggestion_help = QtWidgets.QLabel("⭐ = Highly Recommended  •  ✨ = Recommended  •  ⚠️ = Warning")
+        suggestion_help.setStyleSheet("QLabel { color: #D6D6D6; font-size: 9px; margin-bottom: 3px; }")
+        suggestion_help.setWordWrap(True)
+        variable_layout.addWidget(suggestion_help)
+        
         self.available_variables_list = DragDropListWidget("available", self)
         self.available_variables_list.setMinimumHeight(100)  # Smaller
         self.available_variables_list.setMaximumHeight(100)
@@ -311,13 +325,35 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         
         self.chart_type_combo = QtWidgets.QComboBox()
         self.chart_type_combo.addItems(["Line Chart", "Bar Chart", "Scatter Plot", "Pie Chart"])
+        self.chart_type_combo.currentTextChanged.connect(self.on_chart_type_changed)
         chart_type_layout.addWidget(self.chart_type_combo)
+        
+        # Chart Theme Selection
+        theme_label = QtWidgets.QLabel("Chart Theme:")
+        theme_label.setStyleSheet("QLabel { font-weight: bold; color: #D6D6D6; font-size: 14px; margin-top: 8px; }")
+        chart_type_layout.addWidget(theme_label)
+        
+        self.theme_combo = QtWidgets.QComboBox()
+        # Populate with available themes after chart_manager is initialized
+        self.theme_combo.currentTextChanged.connect(self.on_theme_changed)
+        chart_type_layout.addWidget(self.theme_combo)
         
         # Generate Chart Button (moved here)
         self.generate_chart_btn = QtWidgets.QPushButton("Generate Chart")
         self.generate_chart_btn.setMinimumHeight(30)  # Smaller
         self.generate_chart_btn.clicked.connect(self.generate_chart)
         chart_type_layout.addWidget(self.generate_chart_btn)
+        
+        # Chart Type Suggestions Panel
+        suggestions_label = QtWidgets.QLabel("Chart Suggestions:")
+        suggestions_label.setStyleSheet("QLabel { font-weight: bold; color: #D6D6D6; font-size: 12px; margin-top: 8px; }")
+        chart_type_layout.addWidget(suggestions_label)
+        
+        self.chart_suggestions_text = QtWidgets.QLabel("Select variables to see chart type recommendations")
+        self.chart_suggestions_text.setStyleSheet("QLabel { color: #A0A0A0; font-size: 9px; }")
+        self.chart_suggestions_text.setWordWrap(True)
+        self.chart_suggestions_text.setMinimumHeight(40)
+        chart_type_layout.addWidget(self.chart_suggestions_text)
         
         left_layout.addWidget(chart_type_group)
         left_layout.addStretch()  # Push everything to top
@@ -345,9 +381,49 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         
         # Initialize available variables
         self.populate_available_variables()
+    
+    def populate_theme_combo(self):
+        """Populate the theme combo with available chart themes"""
+        if hasattr(self, 'chart_manager'):
+            themes = self.chart_manager.get_available_themes()
+            self.theme_combo.clear()
+            
+            # Add theme names with nice display names
+            theme_display_names = {
+                "professional": "Professional (Default)",
+                "dark": "Dark Mode", 
+                "minimal": "Minimal Clean",
+                "accessible": "High Contrast"
+            }
+            
+            for theme in themes:
+                display_name = theme_display_names.get(theme, theme.title())
+                self.theme_combo.addItem(display_name, theme)  # Store actual theme name in data
+            
+            # Set default to professional
+            for i in range(self.theme_combo.count()):
+                if self.theme_combo.itemData(i) == "professional":
+                    self.theme_combo.setCurrentIndex(i)
+                    break
+    
+    def on_theme_changed(self):
+        """Handle theme selection change"""
+        if hasattr(self, 'chart_manager'):
+            current_index = self.theme_combo.currentIndex()
+            if current_index >= 0:
+                theme_name = self.theme_combo.itemData(current_index)
+                if theme_name:
+                    self.chart_manager.set_chart_theme(theme_name)
+                    
+                    # Regenerate chart if there's a current chart
+                    if (hasattr(self, 'chart') and 
+                        self.chart.series() and 
+                        len(self.chart.series()) > 0):
+                        # Get current selections and regenerate
+                        self.generate_chart()
 
     def populate_available_variables(self):
-        """Populate the available variables list with all chartable variables"""
+        """Populate the available variables list with all chartable variables and suggestions"""
         variables = [
             # Raw Task Data - Categorical
             ("project_name", "categorical", "📊 Project Name (Categories)"),
@@ -371,10 +447,144 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         ]
         
         self.available_variables_list.clear()
+        
+        # Get current selection context for suggestions
+        current_selection = self._get_current_selection_context()
+        
+        # Get variable suggestions (if suggestion engine is available)
+        suggestions = []
+        if hasattr(self, 'suggestion_engine'):
+            available_vars = [(var_name, var_type) for var_name, var_type, _ in variables]
+            suggestions = self.suggestion_engine.get_variable_suggestions(
+                current_selection, available_vars
+            )
+        
+        # Create a mapping of variable names to suggestions
+        suggestion_map = {}
+        for suggestion in suggestions:
+            if suggestion.variable_name not in suggestion_map:
+                suggestion_map[suggestion.variable_name] = []
+            suggestion_map[suggestion.variable_name].append(suggestion)
+        
+        # Add variables with suggestion indicators
         for var_name, var_type, display_name in variables:
-            item = QtWidgets.QListWidgetItem(display_name)
-            item.setData(QtCore.Qt.UserRole, (var_name, var_type))
-            self.available_variables_list.addItem(item)
+            # Get the best suggestion for this variable
+            var_suggestions = suggestion_map.get(var_name, [])
+            suggestion_info = None
+            
+            if var_suggestions:
+                # Use the highest confidence suggestion
+                best_suggestion = max(var_suggestions, key=lambda s: s.confidence)
+                suggestion_info = {
+                    "type": best_suggestion.suggestion_type.value,
+                    "reason": best_suggestion.reason,
+                    "confidence": best_suggestion.confidence
+                }
+            
+            self.available_variables_list.add_variable_with_suggestion(
+                var_name, var_type, display_name, suggestion_info
+            )
+    
+    def _get_current_selection_context(self) -> Dict[str, Any]:
+        """Get the current variable selection context for suggestions"""
+        context = {
+            "x_variable": None,
+            "y_variables": [],
+            "chart_type": self.chart_type_combo.currentText() if hasattr(self, 'chart_type_combo') else None
+        }
+        
+        # Get X variable
+        if hasattr(self, 'x_variable_list') and self.x_variable_list.count() > 0:
+            x_item = self.x_variable_list.item(0)
+            context["x_variable"] = x_item.data(QtCore.Qt.UserRole)
+        
+        # Get Y variables
+        if hasattr(self, 'y_variables_list'):
+            for i in range(self.y_variables_list.count()):
+                y_item = self.y_variables_list.item(i)
+                context["y_variables"].append(y_item.data(QtCore.Qt.UserRole))
+        
+        return context
+    
+    def update_variable_suggestions(self):
+        """Update variable suggestions based on current selection"""
+        if not hasattr(self, 'suggestion_engine'):
+            return
+        
+        # Get current context
+        current_selection = self._get_current_selection_context()
+        
+        # Get available variables (those not currently selected)
+        available_vars = []
+        for i in range(self.available_variables_list.count()):
+            item = self.available_variables_list.item(i)
+            var_name, var_type = item.data(QtCore.Qt.UserRole)
+            available_vars.append((var_name, var_type))
+        
+        # Get new suggestions
+        suggestions = self.suggestion_engine.get_variable_suggestions(
+            current_selection, available_vars
+        )
+        
+        # Update suggestion indicators
+        suggestion_map = {}
+        for suggestion in suggestions:
+            if suggestion.variable_name not in suggestion_map:
+                suggestion_map[suggestion.variable_name] = []
+            suggestion_map[suggestion.variable_name].append(suggestion)
+        
+        # Update each item in available variables list
+        for i in range(self.available_variables_list.count()):
+            item = self.available_variables_list.item(i)
+            var_name, _ = item.data(QtCore.Qt.UserRole)
+            
+            var_suggestions = suggestion_map.get(var_name, [])
+            if var_suggestions:
+                best_suggestion = max(var_suggestions, key=lambda s: s.confidence)
+                suggestion_info = {
+                    "type": best_suggestion.suggestion_type.value,
+                    "reason": best_suggestion.reason,
+                    "confidence": best_suggestion.confidence
+                }
+                if hasattr(item, 'suggestion_info'):
+                    item.suggestion_info = suggestion_info
+                    item._update_appearance()
+        
+        # Update chart type suggestions
+        self._update_chart_type_suggestions()
+    
+    def _update_chart_type_suggestions(self):
+        """Update the chart type suggestions panel"""
+        if not hasattr(self, 'suggestion_engine') or not hasattr(self, 'chart_suggestions_text'):
+            return
+        
+        current_selection = self._get_current_selection_context()
+        x_variable = current_selection.get("x_variable")
+        y_variables = current_selection.get("y_variables", [])
+        
+        if not x_variable or not y_variables:
+            self.chart_suggestions_text.setText("Select X and Y variables to see chart type recommendations")
+            return
+        
+        # Get chart type suggestions
+        chart_suggestions = self.suggestion_engine.get_chart_type_suggestions(
+            x_variable, y_variables
+        )
+        
+        if not chart_suggestions:
+            self.chart_suggestions_text.setText("No specific chart type recommendations for this selection")
+            return
+        
+        # Format suggestions
+        suggestion_text = []
+        for suggestion in chart_suggestions[:3]:  # Show top 3 suggestions
+            score_text = f"{suggestion.suitability_score:.0%}"
+            chart_text = f"📊 {suggestion.chart_type} ({score_text})"
+            if suggestion.reasons:
+                chart_text += f": {suggestion.reasons[0]}"  # Show first reason
+            suggestion_text.append(chart_text)
+        
+        self.chart_suggestions_text.setText("\n".join(suggestion_text))
     
     def return_variable_to_available(self, display_name, variable_data):
         """Return a variable to the available list"""
@@ -393,40 +603,184 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         self.available_variables_list.addItem(item)
     
     def generate_chart(self):
-        """Generate chart based on selected variables and chart type"""
-        # Get selected variables
-        x_variable = None
-        y_variables = []
-        
-        if self.x_variable_list.count() > 0:
-            x_item = self.x_variable_list.item(0)
-            x_variable = x_item.data(QtCore.Qt.UserRole)
-        
-        for i in range(self.y_variables_list.count()):
-            y_item = self.y_variables_list.item(i)
-            y_variables.append(y_item.data(QtCore.Qt.UserRole))
-        
-        # Validation
-        if not x_variable:
-            QtWidgets.QMessageBox.warning(self, "Warning", "Please select an X-axis variable.")
-            return
-        
-        if not y_variables:
-            QtWidgets.QMessageBox.warning(self, "Warning", "Please select at least one Y-axis variable.")
-            return
-        
-        # Get chart type
-        chart_type = self.chart_type_combo.currentText()
-        
-        # Get data based on current selection
-        data = self.get_chart_data(x_variable, y_variables)
-        
-        if not data:
-            QtWidgets.QMessageBox.information(self, "Info", "No data available for the selected variables and time range.")
-            return
+        """Generate chart based on selected variables and chart type with enhanced error handling"""
+        try:
+            # Get selected variables
+            x_variable = None
+            y_variables = []
+            
+            if self.x_variable_list.count() > 0:
+                x_item = self.x_variable_list.item(0)
+                x_variable = x_item.data(QtCore.Qt.UserRole)
+            
+            for i in range(self.y_variables_list.count()):
+                y_item = self.y_variables_list.item(i)
+                y_variables.append(y_item.data(QtCore.Qt.UserRole))
+            
+            # Enhanced validation with better user guidance
+            if not x_variable:
+                self._show_selection_guidance("No X-axis Variable Selected", 
+                    "Please drag a variable to the X-axis area to create a chart.",
+                    ["Drag a variable from 'Available Variables' to 'X-Axis Variable'",
+                     "Categorical variables (like Project Name, Locale) work well for X-axis",
+                     "Time-based variables (like Date Audited) are good for trend analysis"])
+                return
+            
+            if not y_variables:
+                self._show_selection_guidance("No Y-axis Variables Selected",
+                    "Please drag at least one variable to the Y-axis area to create a chart.",
+                    ["Drag one or more variables from 'Available Variables' to 'Y-Axis Variables'",
+                     "Quantitative variables (like Duration, Score, Earnings) work well for Y-axis",
+                     "You can select multiple Y variables to compare them on the same chart"])
+                return
+            
+            # Check for data selection
+            if not self._has_valid_data_selection():
+                self._show_data_selection_guidance()
+                return
+            
+            # Get chart type
+            chart_type = self.chart_type_combo.currentText()
+            
+            # Progressive disclosure: Show pre-generation guidance for complex scenarios
+            if self._should_show_pre_generation_guidance(x_variable, y_variables, chart_type):
+                if not self._show_pre_generation_guidance(x_variable, y_variables, chart_type):
+                    return  # User chose to cancel
+            
+            # Show loading indicator for large datasets
+            self._show_loading_state(True)
+            
+            # Get data based on current selection
+            data = self.get_chart_data(x_variable, y_variables)
+            
+            if not data:
+                self._show_data_guidance("No Data Available",
+                    "No data was found for the selected variables and time range.",
+                    ["Try selecting a different time range with more data",
+                     "Check if tasks exist for the selected period",
+                     "Verify that data import was successful",
+                     "Some variable combinations may not have overlapping data"])
+                return
 
-        # Generate chart
-        self.chart_manager.create_chart(data, x_variable, y_variables, chart_type)
+            # Generate chart with enhanced error handling
+            self.chart_manager.create_chart(data, x_variable, y_variables, chart_type)
+            
+        except Exception as e:
+            # Handle unexpected errors gracefully
+            self._show_unexpected_error(e)
+        finally:
+            # Always hide loading state
+            self._show_loading_state(False)
+    
+    def _has_valid_data_selection(self):
+        """Check if user has made a valid data selection (time range or week)"""
+        return (self.current_week_id is not None or 
+                (self.current_start_date is not None and self.current_end_date is not None))
+    
+    def _should_show_pre_generation_guidance(self, x_variable, y_variables, chart_type):
+        """Determine if pre-generation guidance should be shown"""
+        # Show guidance for potentially problematic combinations
+        return (len(y_variables) > 5 or  # Many Y variables
+                chart_type == "Pie Chart" or  # Pie charts have specific requirements
+                x_variable[1] == "categorical" and chart_type == "Scatter Plot")  # Categorical X with scatter
+    
+    def _show_pre_generation_guidance(self, x_variable, y_variables, chart_type):
+        """Show pre-generation guidance and return whether to continue"""
+        guidance_messages = []
+        
+        if len(y_variables) > 5:
+            guidance_messages.append(f"You've selected {len(y_variables)} Y variables. This may result in a cluttered chart.")
+        
+        if chart_type == "Pie Chart":
+            if len(y_variables) > 1:
+                guidance_messages.append("Pie charts work best with exactly one Y variable. Only the first will be used.")
+            if x_variable[1] != "categorical":
+                guidance_messages.append("Pie charts require categorical X variables (like Project Name, Locale).")
+        
+        if x_variable[1] == "categorical" and chart_type == "Scatter Plot":
+            guidance_messages.append("Scatter plots work better with quantitative X variables. Consider using a Bar Chart instead.")
+        
+        if guidance_messages:
+            msg_box = QtWidgets.QMessageBox()
+            msg_box.setIcon(QtWidgets.QMessageBox.Question)
+            msg_box.setWindowTitle("Chart Generation Guidance")
+            msg_box.setText("Before generating your chart:\n\n" + "\n".join(f"• {msg}" for msg in guidance_messages))
+            msg_box.setInformativeText("Would you like to continue anyway?")
+            msg_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+            msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
+            
+            return msg_box.exec() == QtWidgets.QMessageBox.Yes
+        
+        return True
+    
+    def _show_selection_guidance(self, title, message, suggestions):
+        """Show helpful guidance for variable selection issues"""
+        msg_box = QtWidgets.QMessageBox()
+        msg_box.setIcon(QtWidgets.QMessageBox.Information)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        
+        if suggestions:
+            suggestion_text = "How to fix this:\n" + "\n".join(f"• {suggestion}" for suggestion in suggestions)
+            msg_box.setInformativeText(suggestion_text)
+        
+        msg_box.exec()
+    
+    def _show_data_selection_guidance(self):
+        """Show guidance for data selection issues"""
+        msg_box = QtWidgets.QMessageBox()
+        msg_box.setIcon(QtWidgets.QMessageBox.Information)
+        msg_box.setWindowTitle("No Data Period Selected")
+        msg_box.setText("Please select a time period to analyze before generating charts.")
+        msg_box.setInformativeText(
+            "You can either:\n"
+            "• Select a specific week from the dropdown, OR\n"
+            "• Choose a custom date range using the calendar controls\n\n"
+            "This determines which data will be included in your chart."
+        )
+        msg_box.exec()
+    
+    def _show_data_guidance(self, title, message, suggestions):
+        """Show helpful guidance for data availability issues"""
+        msg_box = QtWidgets.QMessageBox()
+        msg_box.setIcon(QtWidgets.QMessageBox.Warning)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        
+        if suggestions:
+            suggestion_text = "Possible solutions:\n" + "\n".join(f"• {suggestion}" for suggestion in suggestions)
+            msg_box.setInformativeText(suggestion_text)
+        
+        msg_box.exec()
+    
+    def _show_unexpected_error(self, error):
+        """Show user-friendly error message for unexpected errors"""
+        msg_box = QtWidgets.QMessageBox()
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+        msg_box.setWindowTitle("Unexpected Error")
+        msg_box.setText("An unexpected error occurred while generating the chart.")
+        msg_box.setInformativeText(
+            f"Error details: {str(error)}\n\n"
+            "What you can try:\n"
+            "• Try generating the chart again\n"
+            "• Select different variables or chart type\n"
+            "• Choose a different time range\n"
+            "• Contact support if the problem persists"
+        )
+        msg_box.exec()
+        
+        # Also log the error for debugging
+        print(f"Unexpected error in generate_chart: {error}")
+    
+    def _show_loading_state(self, show_loading):
+        """Show/hide loading state for chart generation"""
+        if show_loading:
+            self.generate_chart_btn.setText("Generating Chart...")
+            self.generate_chart_btn.setEnabled(False)
+            self.chart.setTitle("Generating chart, please wait...")
+        else:
+            self.generate_chart_btn.setText("Generate Chart")
+            self.generate_chart_btn.setEnabled(True)
     
     def get_chart_data(self, x_variable, y_variables):
         """Get data for charting based on selected variables"""
@@ -670,5 +1024,50 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         # Clear daily project dropdown
         self.daily_project_combo.clear()
         self.daily_project_combo.addItem("Select a day...", None)
+
+    def on_chart_type_changed(self):
+        """Handle chart type change"""
+        if hasattr(self, 'suggestion_engine'):
+            # Get current context
+            current_selection = self._get_current_selection_context()
+            
+            # Get available variables (those not currently selected)
+            available_vars = []
+            for i in range(self.available_variables_list.count()):
+                item = self.available_variables_list.item(i)
+                var_name, var_type = item.data(QtCore.Qt.UserRole)
+                available_vars.append((var_name, var_type))
+            
+            # Get new suggestions
+            suggestions = self.suggestion_engine.get_variable_suggestions(
+                current_selection, available_vars
+            )
+            
+            # Update suggestion indicators
+            suggestion_map = {}
+            for suggestion in suggestions:
+                if suggestion.variable_name not in suggestion_map:
+                    suggestion_map[suggestion.variable_name] = []
+                suggestion_map[suggestion.variable_name].append(suggestion)
+            
+            # Update each item in available variables list
+            for i in range(self.available_variables_list.count()):
+                item = self.available_variables_list.item(i)
+                var_name, _ = item.data(QtCore.Qt.UserRole)
+                
+                var_suggestions = suggestion_map.get(var_name, [])
+                if var_suggestions:
+                    best_suggestion = max(var_suggestions, key=lambda s: s.confidence)
+                    suggestion_info = {
+                        "type": best_suggestion.suggestion_type.value,
+                        "reason": best_suggestion.reason,
+                        "confidence": best_suggestion.confidence
+                    }
+                    if hasattr(item, 'suggestion_info'):
+                        item.suggestion_info = suggestion_info
+                        item._update_appearance()
+            
+            # Update chart type suggestions
+            self._update_chart_type_suggestions()
 
 
