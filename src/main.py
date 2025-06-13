@@ -526,6 +526,19 @@ class MainWindow(QtWidgets.QMainWindow):
         """Show the preferences dialog"""
         options_dialog = OptionsDialog(self)
         options_dialog.exec()
+    
+    def closeEvent(self, event):
+        """Handle application close event to clean up resources"""
+        try:
+            # Clean up TaskGrid diagnostics
+            if hasattr(self, 'task_grid') and self.task_grid:
+                self.task_grid.cleanup_diagnostics()
+            
+            # Accept the close event
+            event.accept()
+        except Exception as e:
+            print(f"Error during application cleanup: {e}")
+            event.accept()
 
 # Main application entry point
 if __name__ == "__main__":

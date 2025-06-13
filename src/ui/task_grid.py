@@ -5,6 +5,7 @@ from ui.timer_dialog import TimerDialog
 from core.db.db_connection_pool import get_db_connection
 from core.virtual_model.virtualized_task_model import VirtualizedTaskTableModel
 from core.settings.global_settings import global_settings
+from core.resize_optimization import create_diagnostics_for_task_grid
 
 DB_FILE = "tasks.db"
 
@@ -333,6 +334,10 @@ class TaskGrid(QtWidgets.QTableView):
         
         # Custom item delegate for cell highlighting
         self.setItemDelegate(TaskGridItemDelegate(self))
+        
+        # Initialize resize performance diagnostics and Phase 2 optimization
+        self._setup_resize_diagnostics()
+        self._setup_phase2_optimization()
     
     def _setup_resize_optimizations(self):
         """Setup optimizations to prevent lag during window resizing"""
@@ -354,6 +359,109 @@ class TaskGrid(QtWidgets.QTableView):
         
         # Reduce update frequency during resize operations
         self.setUpdatesEnabled(True)  # Start enabled
+    
+    def _setup_resize_diagnostics(self):
+        """Setup resize performance diagnostics for data collection"""
+        try:
+            # Initialize diagnostic framework for performance monitoring
+            self.diagnostics = create_diagnostics_for_task_grid(self, debug_mode=False)
+            
+            # Connect diagnostic signals for monitoring
+            self.diagnostics.performanceIssueDetected.connect(self._on_performance_issue_detected)
+            
+            # Start baseline data collection automatically
+            self.diagnostics.start_baseline_collection(duration_seconds=300)  # 5 minute baseline sessions
+            
+            print("TaskGrid: Resize diagnostics initialized successfully")
+            
+        except Exception as e:
+            print(f"TaskGrid: Failed to initialize resize diagnostics: {e}")
+            self.diagnostics = None
+    
+    def _setup_phase2_optimization(self):
+        """Setup Phase 3 resize optimization system (with Phase 2 fallback)"""
+        try:
+            # Try Phase 3 first (adaptive optimization)
+            from core.resize_optimization.phase3_integration import create_phase3_optimization
+            
+            # Initialize Phase 3 optimization system with adaptive intelligence
+            self.phase2_optimization = create_phase3_optimization(self, debug_mode=False)
+            
+            # Connect Phase 3 specific signals
+            if hasattr(self.phase2_optimization, 'thresholdsAdapted'):
+                self.phase2_optimization.thresholdsAdapted.connect(self._on_thresholds_adapted)
+            if hasattr(self.phase2_optimization, 'contextChanged'):
+                self.phase2_optimization.contextChanged.connect(self._on_context_changed)
+            if hasattr(self.phase2_optimization, 'performanceAnalysisUpdated'):
+                self.phase2_optimization.performanceAnalysisUpdated.connect(self._on_performance_analysis_updated)
+            
+            # Connect standard optimization signals for monitoring
+            self.phase2_optimization.optimizationActivated.connect(self._on_optimization_activated)
+            self.phase2_optimization.optimizationDeactivated.connect(self._on_optimization_deactivated)
+            self.phase2_optimization.fallbackTriggered.connect(self._on_optimization_fallback)
+            
+            # Phase 3 optimization system initialized successfully
+            
+        except Exception as e:
+            print(f"TaskGrid: Error setting up Phase 3 optimization, falling back to Phase 2: {e}")
+            # Fallback to Phase 2 if Phase 3 fails
+            try:
+                from core.resize_optimization import create_phase2_optimization
+                self.phase2_optimization = create_phase2_optimization(self, debug_mode=False)
+                
+                # Connect Phase 2 signals
+                self.phase2_optimization.optimizationActivated.connect(self._on_optimization_activated)
+                self.phase2_optimization.optimizationDeactivated.connect(self._on_optimization_deactivated)
+                self.phase2_optimization.fallbackTriggered.connect(self._on_optimization_fallback)
+                
+                print("TaskGrid: Phase 2 resize optimization system initialized (fallback)")
+                
+            except Exception as e2:
+                print(f"TaskGrid: Error setting up Phase 2 fallback: {e2}")
+                self.phase2_optimization = None
+    
+    def _on_optimization_activated(self, level: str, reason: str):
+        """Handle optimization activation (optional monitoring)"""
+        # This is just for monitoring - the optimization is automatic and invisible
+        pass
+    
+    def _on_optimization_deactivated(self, level: str, reason: str):
+        """Handle optimization deactivation (optional monitoring)"""
+        # This is just for monitoring - the optimization is automatic and invisible
+        pass
+    
+    def _on_optimization_fallback(self, reason: str):
+        """Handle optimization fallback scenarios"""
+        # Log fallback for debugging purposes
+        print(f"TaskGrid: Optimization fallback triggered: {reason}")
+    
+    def _on_performance_issue_detected(self, issue_type, issue_data):
+        """Handle performance issue detection from diagnostics"""
+        # Log performance issues for analysis (could be enhanced to show user notifications)
+        print(f"TaskGrid Performance Issue: {issue_type} - {issue_data}")
+        
+        # Could add user notification here in the future:
+        # if issue_type == "high_paint_frequency" and issue_data.get("frequency", 0) > 50:
+        #     # Show subtle notification about performance optimization being active
+    
+    def _on_thresholds_adapted(self, context_key: str, new_thresholds: dict):
+        """Handle adaptive threshold changes (Phase 3)"""
+        if hasattr(self, 'debug_mode') and getattr(self, 'debug_mode', False):
+            print(f"TaskGrid: Adaptive thresholds updated for context '{context_key}': {new_thresholds}")
+    
+    def _on_context_changed(self, new_context_key: str):
+        """Handle context changes (Phase 3)"""
+        if hasattr(self, 'debug_mode') and getattr(self, 'debug_mode', False):
+            print(f"TaskGrid: Optimization context changed to '{new_context_key}'")
+    
+    def _on_performance_analysis_updated(self, analysis_data: dict):
+        """Handle performance analysis updates (Phase 3)"""
+        # This could be used to show performance insights to power users
+        # For now, just log for debugging
+        if hasattr(self, 'debug_mode') and getattr(self, 'debug_mode', False):
+            effectiveness = analysis_data.get('average_effectiveness', 0)
+            sessions = analysis_data.get('total_sessions', 0)
+            print(f"TaskGrid: Performance analysis updated - {effectiveness:.1f}% effectiveness over {sessions} sessions")
     
     def resizeEvent(self, event):
         """Override resize event to implement smart throttling"""
@@ -1038,6 +1146,24 @@ class TaskGrid(QtWidgets.QTableView):
         except Exception as e:
             print(f"Error validating task boundaries: {e}")
             return True
+    
+    def cleanup_diagnostics(self):
+        """Clean up diagnostic resources when TaskGrid is destroyed"""
+        # Clean up Phase 2 optimization system
+        if hasattr(self, 'phase2_optimization') and self.phase2_optimization:
+            try:
+                self.phase2_optimization.cleanup()
+                print("TaskGrid: Phase 2 optimization cleanup completed")
+            except Exception as e:
+                print(f"TaskGrid: Error during Phase 2 optimization cleanup: {e}")
+        
+        # Clean up diagnostic system
+        if hasattr(self, 'diagnostics') and self.diagnostics:
+            try:
+                self.diagnostics.cleanup()
+                print("TaskGrid: Diagnostic cleanup completed")
+            except Exception as e:
+                print(f"TaskGrid: Error during diagnostic cleanup: {e}")
 
 
 class TaskGridItemDelegate(QtWidgets.QStyledItemDelegate):
