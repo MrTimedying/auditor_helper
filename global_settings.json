@@ -1,0 +1,33 @@
+{
+  "first_startup_completed": true,
+  "version": "1.0",
+  "week_settings": {
+    "use_global_defaults": true,
+    "default_week_start_day": 1,
+    "default_week_start_hour": 9,
+    "default_week_end_day": 1,
+    "default_week_end_hour": 9,
+    "enforce_exact_week_duration": true
+  },
+  "bonus_settings": {
+    "use_global_defaults": true,
+    "global_bonus_enabled": true,
+    "default_bonus_start_day": 5,
+    "default_bonus_start_time": "09:00",
+    "default_bonus_end_day": 0,
+    "default_bonus_end_time": "09:00",
+    "default_bonus_payrate": 37.95,
+    "default_enable_task_bonus": false,
+    "default_bonus_task_threshold": 20,
+    "default_bonus_additional_amount": 50.0
+  },
+  "office_hours_settings": {
+    "default_office_hour_payrate": 25.3,
+    "default_office_hour_session_duration_minutes": 30
+  },
+  "ui_settings": {
+    "show_week_boundary_warnings": true,
+    "auto_suggest_new_week": true,
+    "default_payrate": 25.3
+  }
+}

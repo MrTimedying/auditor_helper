@@ -1,6 +1,7 @@
 # IDE and Editor files
 .vscode/
 .idea/
+.qtcreator/
 *.sublime-project
 *.sublime-workspace
 *.suo
@@ -89,6 +90,7 @@ npm-debug.log*
 *.db
 *.db-journal
 *.db.bak*
+tasks.db
 backups/
 app_icon.ico
 
@@ -111,4 +113,74 @@ app_icon.ico
 
 # Project Planning
 PLAN.md
+
+# Testing and Development Files
+# =================================
+
+# Test data and metrics
+metrics_data/
+test_data/
+performance_data/
+diagnostic_data/
+baseline_data/
+
+# Development and testing scripts
+emergency_test.py
+test_diagnostic_integration.py
+*_test_*.py
+debug_*.py
+temp_*.py
+scratch_*.py
+
+# Performance testing outputs
+performance_reports/
+test_reports/
+benchmark_results/
+profiling_data/
+
+# Development notes and temporary documentation
+DEV_NOTES.md
+TODO.md
+SCRATCH.md
+TESTING.md
+*_NOTES.md
+BUILD_NOTES_*.md
+
+# Temporary configuration files
+test_config.json
+debug_config.json
+temp_settings.json
+local_settings.json
+
+# Development databases and data files
+test.db
+debug.db
+sample_data.json
+mock_data.json
+
+# Jupyter notebooks and analysis files
+*.ipynb
+.ipynb_checkpoints/
+analysis/
+experiments/
+
+# Development logs and debug output
+debug.log
+test.log
+performance.log
+diagnostic.log
+*.debug
+*.trace
+
+# Temporary build and packaging files
+*.whl
+*.tar.gz
+packaging/
+release_temp/
+
+# Development virtual environments
+dev_env/
+test_env/
+.venv_dev/
+.venv_test/
 
