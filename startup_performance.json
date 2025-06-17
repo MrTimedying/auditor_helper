@@ -1,0 +1,2144 @@
+[
+  {
+    "session_id": "main_startup",
+    "start_time": 1750051689.8054016,
+    "end_time": 1750051694.6281319,
+    "total_duration": 4.822730302810669,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750051689.8054016,
+        "end_time": 1750051689.8283792,
+        "duration": 0.022977590560913086,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750051689.8283792,
+        "end_time": 1750051689.8283792,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750051689.8283792,
+        "end_time": 1750051689.8283792,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750051689.8283792,
+        "end_time": 1750051689.8373954,
+        "duration": 0.009016275405883789,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750051689.8373954,
+        "end_time": 1750051689.8494167,
+        "duration": 0.012021303176879883,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750052477.1365066,
+    "end_time": 1750052481.9817326,
+    "total_duration": 4.845226049423218,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750052477.1365066,
+        "end_time": 1750052477.158872,
+        "duration": 0.022365331649780273,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750052477.158872,
+        "end_time": 1750052477.158872,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750052477.158872,
+        "end_time": 1750052477.158872,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750052477.158872,
+        "end_time": 1750052477.1658974,
+        "duration": 0.007025480270385742,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750052477.1658974,
+        "end_time": 1750052477.1684031,
+        "duration": 0.002505779266357422,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750052543.0370204,
+    "end_time": 1750052547.8812847,
+    "total_duration": 4.844264268875122,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750052543.0370204,
+        "end_time": 1750052543.0596097,
+        "duration": 0.02258920669555664,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750052543.0596097,
+        "end_time": 1750052543.0596097,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750052543.0596097,
+        "end_time": 1750052543.0596097,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750052543.0596097,
+        "end_time": 1750052543.0661244,
+        "duration": 0.006514787673950195,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750052543.0661244,
+        "end_time": 1750052543.068685,
+        "duration": 0.0025606155395507812,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750052881.4054525,
+    "end_time": 1750052886.2875514,
+    "total_duration": 4.882098913192749,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750052881.4054525,
+        "end_time": 1750052881.4310334,
+        "duration": 0.025580883026123047,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750052881.4310334,
+        "end_time": 1750052881.4310334,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750052881.4310334,
+        "end_time": 1750052881.4310334,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750052881.4310334,
+        "end_time": 1750052881.4394891,
+        "duration": 0.008455753326416016,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750052881.4394891,
+        "end_time": 1750052881.442719,
+        "duration": 0.003229856491088867,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053131.5852828,
+    "end_time": 1750053132.3385608,
+    "total_duration": 0.7532780170440674,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053131.5852828,
+        "end_time": 1750053131.605356,
+        "duration": 0.02007317543029785,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053131.605356,
+        "end_time": 1750053131.605356,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053131.605356,
+        "end_time": 1750053131.605356,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053131.605356,
+        "end_time": 1750053131.6123724,
+        "duration": 0.007016420364379883,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053131.6123724,
+        "end_time": 1750053131.6143768,
+        "duration": 0.002004384994506836,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053374.3258321,
+    "end_time": 1750053375.1004767,
+    "total_duration": 0.7746446132659912,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053374.3258321,
+        "end_time": 1750053374.3479912,
+        "duration": 0.022159099578857422,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053374.3479912,
+        "end_time": 1750053374.3479912,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053374.3479912,
+        "end_time": 1750053374.3479912,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053374.3479912,
+        "end_time": 1750053374.3545625,
+        "duration": 0.006571292877197266,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053374.3545625,
+        "end_time": 1750053374.3671327,
+        "duration": 0.01257014274597168,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053442.5741537,
+    "end_time": 1750053443.3383038,
+    "total_duration": 0.7641501426696777,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053442.5741537,
+        "end_time": 1750053442.5947962,
+        "duration": 0.020642518997192383,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053442.5957959,
+        "end_time": 1750053442.5957959,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053442.5957959,
+        "end_time": 1750053442.5957959,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053442.5957959,
+        "end_time": 1750053442.602341,
+        "duration": 0.006545066833496094,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053442.602341,
+        "end_time": 1750053442.6043386,
+        "duration": 0.001997709274291992,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053502.1655428,
+    "end_time": 1750053502.9412584,
+    "total_duration": 0.7757155895233154,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053502.1655428,
+        "end_time": 1750053502.1886387,
+        "duration": 0.02309584617614746,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053502.1886387,
+        "end_time": 1750053502.1886387,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053502.1886387,
+        "end_time": 1750053502.1886387,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053502.1886387,
+        "end_time": 1750053502.1951773,
+        "duration": 0.0065386295318603516,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053502.1951773,
+        "end_time": 1750053502.1981773,
+        "duration": 0.003000020980834961,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053516.2537937,
+    "end_time": 1750053517.0322607,
+    "total_duration": 0.7784669399261475,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053516.2537937,
+        "end_time": 1750053516.277378,
+        "duration": 0.023584365844726562,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053516.278383,
+        "end_time": 1750053516.278383,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053516.278383,
+        "end_time": 1750053516.278383,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053516.278383,
+        "end_time": 1750053516.2844546,
+        "duration": 0.006071567535400391,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053516.2844546,
+        "end_time": 1750053516.2940242,
+        "duration": 0.009569644927978516,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053542.833491,
+    "end_time": 1750053543.552112,
+    "total_duration": 0.718621015548706,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053542.833491,
+        "end_time": 1750053542.855741,
+        "duration": 0.022249937057495117,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053542.855741,
+        "end_time": 1750053542.855741,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053542.855741,
+        "end_time": 1750053542.855741,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053542.855741,
+        "end_time": 1750053542.862247,
+        "duration": 0.0065059661865234375,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053542.862247,
+        "end_time": 1750053542.8652508,
+        "duration": 0.003003835678100586,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053815.4619734,
+    "end_time": 1750053816.277262,
+    "total_duration": 0.8152885437011719,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053815.4619734,
+        "end_time": 1750053815.4853246,
+        "duration": 0.023351192474365234,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053815.4853246,
+        "end_time": 1750053815.4853246,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053815.4853246,
+        "end_time": 1750053815.4853246,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053815.4853246,
+        "end_time": 1750053815.4928312,
+        "duration": 0.007506608963012695,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053815.4928312,
+        "end_time": 1750053815.4958336,
+        "duration": 0.0030024051666259766,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750053833.2315679,
+    "end_time": 1750053834.0201857,
+    "total_duration": 0.7886178493499756,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750053833.2315679,
+        "end_time": 1750053833.255363,
+        "duration": 0.023795127868652344,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750053833.255363,
+        "end_time": 1750053833.255363,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750053833.255363,
+        "end_time": 1750053833.255363,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750053833.255363,
+        "end_time": 1750053833.2626421,
+        "duration": 0.007279157638549805,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750053833.2626421,
+        "end_time": 1750053833.2646434,
+        "duration": 0.0020012855529785156,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750054604.8296244,
+    "end_time": 1750054605.5853255,
+    "total_duration": 0.7557010650634766,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750054604.8296244,
+        "end_time": 1750054604.849572,
+        "duration": 0.019947528839111328,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750054604.849572,
+        "end_time": 1750054604.849572,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750054604.849572,
+        "end_time": 1750054604.849572,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750054604.849572,
+        "end_time": 1750054604.8565729,
+        "duration": 0.007000923156738281,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750054604.8565729,
+        "end_time": 1750054604.8591108,
+        "duration": 0.002537965774536133,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750054656.6180675,
+    "end_time": 1750054657.3733056,
+    "total_duration": 0.7552380561828613,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750054656.6180675,
+        "end_time": 1750054656.639711,
+        "duration": 0.021643400192260742,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750054656.639711,
+        "end_time": 1750054656.639711,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750054656.639711,
+        "end_time": 1750054656.639711,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750054656.639711,
+        "end_time": 1750054656.645681,
+        "duration": 0.005970001220703125,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750054656.645681,
+        "end_time": 1750054656.64919,
+        "duration": 0.003509044647216797,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750055678.88356,
+    "end_time": 1750055679.6369183,
+    "total_duration": 0.7533583641052246,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750055678.88356,
+        "end_time": 1750055678.9036217,
+        "duration": 0.020061731338500977,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750055678.9036217,
+        "end_time": 1750055678.904125,
+        "duration": 0.0005033016204833984,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750055678.904125,
+        "end_time": 1750055678.904125,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750055678.904125,
+        "end_time": 1750055678.9111404,
+        "duration": 0.0070154666900634766,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750055678.9111404,
+        "end_time": 1750055678.9146817,
+        "duration": 0.003541231155395508,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750056410.439948,
+    "end_time": 1750056411.1800213,
+    "total_duration": 0.7400732040405273,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750056410.439948,
+        "end_time": 1750056410.4646244,
+        "duration": 0.02467632293701172,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750056410.4646244,
+        "end_time": 1750056410.4646244,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750056410.4646244,
+        "end_time": 1750056410.4646244,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750056410.4646244,
+        "end_time": 1750056410.472693,
+        "duration": 0.008068561553955078,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750056410.472693,
+        "end_time": 1750056410.4844935,
+        "duration": 0.011800527572631836,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750056677.9803386,
+    "end_time": 1750056678.8431466,
+    "total_duration": 0.8628079891204834,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750056677.9803386,
+        "end_time": 1750056678.0004542,
+        "duration": 0.02011561393737793,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750056678.0004542,
+        "end_time": 1750056678.0004542,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750056678.0004542,
+        "end_time": 1750056678.0004542,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750056678.0004542,
+        "end_time": 1750056678.0080376,
+        "duration": 0.0075833797454833984,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750056678.0080376,
+        "end_time": 1750056678.124217,
+        "duration": 0.1161794662475586,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750056831.6784954,
+    "end_time": 1750056832.4116833,
+    "total_duration": 0.7331879138946533,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750056831.6784954,
+        "end_time": 1750056831.7018862,
+        "duration": 0.023390769958496094,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750056831.7018862,
+        "end_time": 1750056831.7018862,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750056831.7018862,
+        "end_time": 1750056831.7019546,
+        "duration": 6.842613220214844e-05,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750056831.7019546,
+        "end_time": 1750056831.7078903,
+        "duration": 0.0059356689453125,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750056831.7078903,
+        "end_time": 1750056831.7189229,
+        "duration": 0.011032581329345703,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750056902.3624613,
+    "end_time": 1750056903.1284552,
+    "total_duration": 0.7659938335418701,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750056902.3624613,
+        "end_time": 1750056902.3846147,
+        "duration": 0.022153377532958984,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750056902.3846147,
+        "end_time": 1750056902.3846147,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750056902.3846147,
+        "end_time": 1750056902.3846147,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750056902.3846147,
+        "end_time": 1750056902.39163,
+        "duration": 0.007015228271484375,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750056902.39163,
+        "end_time": 1750056902.3955777,
+        "duration": 0.003947734832763672,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750057406.0354261,
+    "end_time": 1750057406.7236347,
+    "total_duration": 0.6882085800170898,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750057406.0354261,
+        "end_time": 1750057406.056943,
+        "duration": 0.021516799926757812,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750057406.056943,
+        "end_time": 1750057406.056943,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750057406.056943,
+        "end_time": 1750057406.056943,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750057406.056943,
+        "end_time": 1750057406.0629501,
+        "duration": 0.006007194519042969,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750057406.0629501,
+        "end_time": 1750057406.0669491,
+        "duration": 0.003998994827270508,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750058847.5204172,
+    "end_time": 1750058849.6351652,
+    "total_duration": 2.114748001098633,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750058847.5204172,
+        "end_time": 1750058847.5437288,
+        "duration": 0.023311614990234375,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750058847.5437288,
+        "end_time": 1750058847.5437288,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750058847.5437288,
+        "end_time": 1750058847.5437288,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750058847.5437288,
+        "end_time": 1750058847.5575945,
+        "duration": 0.01386570930480957,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750058847.5575945,
+        "end_time": 1750058847.5823445,
+        "duration": 0.0247499942779541,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750059036.6847706,
+    "end_time": 1750059037.3889952,
+    "total_duration": 0.7042245864868164,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750059036.6847706,
+        "end_time": 1750059036.7071488,
+        "duration": 0.022378206253051758,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750059036.7071488,
+        "end_time": 1750059036.7071488,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750059036.7071488,
+        "end_time": 1750059036.7071488,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750059036.7071488,
+        "end_time": 1750059036.7147279,
+        "duration": 0.00757908821105957,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750059036.7147279,
+        "end_time": 1750059036.717657,
+        "duration": 0.002929210662841797,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750059234.9852116,
+    "end_time": 1750059235.7053475,
+    "total_duration": 0.7201359272003174,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750059234.9852116,
+        "end_time": 1750059235.0078123,
+        "duration": 0.022600650787353516,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750059235.0078123,
+        "end_time": 1750059235.0078123,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750059235.0078123,
+        "end_time": 1750059235.0078123,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750059235.0078123,
+        "end_time": 1750059235.0142913,
+        "duration": 0.006479024887084961,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750059235.0142913,
+        "end_time": 1750059235.018329,
+        "duration": 0.004037618637084961,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750059389.7993178,
+    "end_time": 1750059390.5025814,
+    "total_duration": 0.703263521194458,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750059389.7993178,
+        "end_time": 1750059389.820844,
+        "duration": 0.021526098251342773,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750059389.820844,
+        "end_time": 1750059389.820844,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750059389.820844,
+        "end_time": 1750059389.820844,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750059389.820844,
+        "end_time": 1750059389.8279748,
+        "duration": 0.007130861282348633,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750059389.8279748,
+        "end_time": 1750059389.8306773,
+        "duration": 0.002702474594116211,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750059740.5205727,
+    "end_time": 1750059741.1970358,
+    "total_duration": 0.6764631271362305,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750059740.5205727,
+        "end_time": 1750059740.5426893,
+        "duration": 0.022116661071777344,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750059740.5426893,
+        "end_time": 1750059740.5426893,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750059740.5426893,
+        "end_time": 1750059740.5426893,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750059740.5426893,
+        "end_time": 1750059740.548668,
+        "duration": 0.005978584289550781,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750059740.548668,
+        "end_time": 1750059740.5516708,
+        "duration": 0.0030028820037841797,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750060686.8428295,
+    "end_time": 1750060687.5385644,
+    "total_duration": 0.695734977722168,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750060686.8428295,
+        "end_time": 1750060686.8628318,
+        "duration": 0.020002365112304688,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750060686.8628318,
+        "end_time": 1750060686.8628318,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750060686.8628318,
+        "end_time": 1750060686.8628318,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750060686.8628318,
+        "end_time": 1750060686.8693397,
+        "duration": 0.00650787353515625,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750060686.8693397,
+        "end_time": 1750060686.8734396,
+        "duration": 0.004099845886230469,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750060942.4045453,
+    "end_time": 1750060943.1097806,
+    "total_duration": 0.7052352428436279,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750060942.4045453,
+        "end_time": 1750060942.4265423,
+        "duration": 0.02199697494506836,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750060942.4265423,
+        "end_time": 1750060942.4265423,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750060942.4265423,
+        "end_time": 1750060942.4265423,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750060942.4265423,
+        "end_time": 1750060942.4345436,
+        "duration": 0.008001327514648438,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750060942.4345436,
+        "end_time": 1750060942.4395428,
+        "duration": 0.0049991607666015625,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750131940.9276764,
+    "end_time": 1750131941.8188062,
+    "total_duration": 0.891129732131958,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750131940.9276764,
+        "end_time": 1750131940.9920278,
+        "duration": 0.06435132026672363,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750131940.9920278,
+        "end_time": 1750131940.9920278,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750131940.9920278,
+        "end_time": 1750131940.9920278,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750131940.9920278,
+        "end_time": 1750131941.013205,
+        "duration": 0.021177291870117188,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750131941.013205,
+        "end_time": 1750131941.023215,
+        "duration": 0.010010004043579102,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750131983.5787303,
+    "end_time": 1750131984.269063,
+    "total_duration": 0.6903326511383057,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750131983.5787303,
+        "end_time": 1750131983.6028485,
+        "duration": 0.02411818504333496,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750131983.6028485,
+        "end_time": 1750131983.6028485,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750131983.6028485,
+        "end_time": 1750131983.6028485,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750131983.6028485,
+        "end_time": 1750131983.6093595,
+        "duration": 0.00651097297668457,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750131983.6093595,
+        "end_time": 1750131983.6133645,
+        "duration": 0.004004955291748047,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750132023.2308614,
+    "end_time": 1750132023.929094,
+    "total_duration": 0.6982326507568359,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750132023.2308614,
+        "end_time": 1750132023.2506473,
+        "duration": 0.01978588104248047,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750132023.2506473,
+        "end_time": 1750132023.2506473,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750132023.2506473,
+        "end_time": 1750132023.2506473,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750132023.2506473,
+        "end_time": 1750132023.2566173,
+        "duration": 0.005970001220703125,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750132023.2566173,
+        "end_time": 1750132023.260619,
+        "duration": 0.004001617431640625,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750132106.4387581,
+    "end_time": 1750132107.175869,
+    "total_duration": 0.7371108531951904,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750132106.4387581,
+        "end_time": 1750132106.4612827,
+        "duration": 0.022524595260620117,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750132106.4612827,
+        "end_time": 1750132106.4612827,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750132106.4612827,
+        "end_time": 1750132106.4612827,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750132106.4612827,
+        "end_time": 1750132106.4682953,
+        "duration": 0.007012605667114258,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750132106.4682953,
+        "end_time": 1750132106.4712956,
+        "duration": 0.0030002593994140625,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750132162.4526377,
+    "end_time": 1750132163.1307526,
+    "total_duration": 0.6781148910522461,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750132162.4526377,
+        "end_time": 1750132162.4736667,
+        "duration": 0.021028995513916016,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750132162.4736667,
+        "end_time": 1750132162.4736667,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750132162.4736667,
+        "end_time": 1750132162.4736667,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750132162.4736667,
+        "end_time": 1750132162.4806664,
+        "duration": 0.0069997310638427734,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750132162.4806664,
+        "end_time": 1750132162.483638,
+        "duration": 0.002971649169921875,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750137451.1840537,
+    "end_time": 1750137451.9004097,
+    "total_duration": 0.7163560390472412,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750137451.1840537,
+        "end_time": 1750137451.209127,
+        "duration": 0.02507328987121582,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750137451.209127,
+        "end_time": 1750137451.209127,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750137451.209127,
+        "end_time": 1750137451.209127,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750137451.209127,
+        "end_time": 1750137451.2151265,
+        "duration": 0.005999565124511719,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750137451.2151265,
+        "end_time": 1750137451.223638,
+        "duration": 0.008511543273925781,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750138046.2348342,
+    "end_time": 1750138046.935138,
+    "total_duration": 0.7003037929534912,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750138046.2348342,
+        "end_time": 1750138046.2568662,
+        "duration": 0.02203202247619629,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750138046.2568662,
+        "end_time": 1750138046.2568662,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750138046.2568662,
+        "end_time": 1750138046.2568662,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750138046.2568662,
+        "end_time": 1750138046.2628639,
+        "duration": 0.005997657775878906,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750138046.2628639,
+        "end_time": 1750138046.272118,
+        "duration": 0.009254217147827148,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750139096.6290052,
+    "end_time": 1750139097.3209255,
+    "total_duration": 0.691920280456543,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750139096.6290052,
+        "end_time": 1750139096.6501257,
+        "duration": 0.021120548248291016,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750139096.6511257,
+        "end_time": 1750139096.6511257,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750139096.6511257,
+        "end_time": 1750139096.6511257,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750139096.6511257,
+        "end_time": 1750139096.6569762,
+        "duration": 0.005850553512573242,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750139096.6579866,
+        "end_time": 1750139096.6605392,
+        "duration": 0.002552509307861328,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750139320.4762442,
+    "end_time": 1750139321.1512191,
+    "total_duration": 0.6749749183654785,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750139320.4762442,
+        "end_time": 1750139320.4969025,
+        "duration": 0.020658254623413086,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750139320.4969025,
+        "end_time": 1750139320.4969025,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750139320.4969025,
+        "end_time": 1750139320.4969025,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750139320.4969025,
+        "end_time": 1750139320.5034401,
+        "duration": 0.006537675857543945,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750139320.5034401,
+        "end_time": 1750139320.5064404,
+        "duration": 0.0030002593994140625,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750140882.788054,
+    "end_time": 1750140883.4701815,
+    "total_duration": 0.6821274757385254,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750140882.788054,
+        "end_time": 1750140882.808234,
+        "duration": 0.02017998695373535,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750140882.808234,
+        "end_time": 1750140882.808234,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750140882.808234,
+        "end_time": 1750140882.808234,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750140882.808234,
+        "end_time": 1750140882.814234,
+        "duration": 0.006000041961669922,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750140882.814234,
+        "end_time": 1750140882.8177745,
+        "duration": 0.003540515899658203,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750141053.071334,
+    "end_time": 1750141053.7791626,
+    "total_duration": 0.7078287601470947,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750141053.071334,
+        "end_time": 1750141053.0938222,
+        "duration": 0.02248835563659668,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750141053.0938222,
+        "end_time": 1750141053.0938222,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750141053.0938222,
+        "end_time": 1750141053.0938222,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750141053.0938222,
+        "end_time": 1750141053.100333,
+        "duration": 0.006510734558105469,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750141053.100333,
+        "end_time": 1750141053.1043317,
+        "duration": 0.003998756408691406,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750141259.6549468,
+    "end_time": 1750141260.3281503,
+    "total_duration": 0.6732034683227539,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750141259.6549468,
+        "end_time": 1750141259.6770003,
+        "duration": 0.02205348014831543,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750141259.6770003,
+        "end_time": 1750141259.6770003,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750141259.6770003,
+        "end_time": 1750141259.6770003,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750141259.6770003,
+        "end_time": 1750141259.6830018,
+        "duration": 0.006001472473144531,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750141259.6830018,
+        "end_time": 1750141259.6860025,
+        "duration": 0.0030007362365722656,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750142842.045806,
+    "end_time": 1750142842.7335489,
+    "total_duration": 0.6877429485321045,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750142842.045806,
+        "end_time": 1750142842.0668132,
+        "duration": 0.021007299423217773,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750142842.0668132,
+        "end_time": 1750142842.0668132,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750142842.0668132,
+        "end_time": 1750142842.0668132,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750142842.0668132,
+        "end_time": 1750142842.0743203,
+        "duration": 0.0075070858001708984,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750142842.0743203,
+        "end_time": 1750142842.0773253,
+        "duration": 0.0030050277709960938,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750142921.7978368,
+    "end_time": 1750142922.5075874,
+    "total_duration": 0.7097506523132324,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750142921.7978368,
+        "end_time": 1750142921.8218367,
+        "duration": 0.023999929428100586,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750142921.8218367,
+        "end_time": 1750142921.8218367,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750142921.8218367,
+        "end_time": 1750142921.8218367,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750142921.8218367,
+        "end_time": 1750142921.8288355,
+        "duration": 0.006998777389526367,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750142921.8288355,
+        "end_time": 1750142921.831836,
+        "duration": 0.003000497817993164,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  },
+  {
+    "session_id": "main_startup",
+    "start_time": 1750143937.91325,
+    "end_time": 1750143938.6285703,
+    "total_duration": 0.715320348739624,
+    "lazy_imports_used": true,
+    "cache_system_used": false,
+    "optimization_version": "1.0.0",
+    "phases": [
+      {
+        "name": "Application Setup",
+        "start_time": 1750143937.91325,
+        "end_time": 1750143937.9350064,
+        "duration": 0.021756410598754883,
+        "description": "Initialize Qt application and environment",
+        "critical": true
+      },
+      {
+        "name": "First Startup Check",
+        "start_time": 1750143937.9350064,
+        "end_time": 1750143937.9350064,
+        "duration": 0.0,
+        "description": "Check if first startup wizard is needed",
+        "critical": false
+      },
+      {
+        "name": "Main Window Creation",
+        "start_time": 1750143937.9350064,
+        "end_time": 1750143937.9350064,
+        "duration": 0.0,
+        "description": "Create and display main application window",
+        "critical": true
+      },
+      {
+        "name": "MainWindow Initialization",
+        "start_time": 1750143937.9350064,
+        "end_time": 1750143937.942007,
+        "duration": 0.00700068473815918,
+        "description": "Initialize main window and core components",
+        "critical": true
+      },
+      {
+        "name": "Database Migrations",
+        "start_time": 1750143937.942007,
+        "end_time": 1750143937.9510448,
+        "duration": 0.00903773307800293,
+        "description": "Run database schema migrations",
+        "critical": true
+      }
+    ]
+  }
+]

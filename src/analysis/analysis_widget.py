@@ -1,17 +1,39 @@
 from PySide6 import QtCore, QtWidgets, QtGui
-from PySide6.QtCharts import QChart, QChartView
 from typing import Dict, Any
 import os # Added for path handling
+import logging
 
 from analysis.analysis_module.drag_drop_list_widget import DragDropListWidget
 from analysis.analysis_module.data_manager import DataManager
-from analysis.analysis_module.chart_manager import ChartManager
-from analysis.analysis_module.chart_constraints import (
-    get_allowed_x_variables, get_allowed_y_variables, get_allowed_chart_types,
-    get_compatible_chart_types, validate_variable_combination
-)
 from core.settings.global_settings import global_settings, get_icon_path
 from ui.ui_components.collapsible_pane import CollapsiblePane
+
+# Event Bus imports
+from core.events import get_event_bus, EventType
+
+# Conditional chart imports - graceful degradation for light version
+try:
+    from PySide6.QtCharts import QChart, QChartView
+    from analysis.analysis_module.chart_manager import ChartManager
+    from analysis.analysis_module.chart_constraints import (
+        get_allowed_x_variables, get_allowed_y_variables, get_allowed_chart_types,
+        get_compatible_chart_types, validate_variable_combination
+    )
+    CHARTS_AVAILABLE = True
+    logging.info("Charts module loaded successfully - Full version")
+except ImportError as e:
+    logging.info(f"Charts module not available - Light version: {e}")
+    CHARTS_AVAILABLE = False
+    
+    # Placeholder for chart-related functions when not available
+    QChart = None
+    QChartView = None
+    ChartManager = None
+    get_allowed_x_variables = None
+    get_allowed_y_variables = None
+    get_allowed_chart_types = None
+    get_compatible_chart_types = None
+    validate_variable_combination = None
 
 basedir = os.path.dirname(__file__)
 
@@ -27,6 +49,9 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         self.central_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.central_widget)
 
+        # Initialize Event Bus
+        self.event_bus = get_event_bus()
+        
         # Initialize DataManager
         self.data_manager = DataManager()
         
@@ -50,34 +75,207 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         # Data Selection Section
         self.create_data_selection_controls(content_layout)
         
-        # Create tabs: Numerical Statistics and Graphs
+        # Create tabs: Numerical Statistics and conditionally Graphs
         self.tabs = QtWidgets.QTabWidget()
         content_layout.addWidget(self.tabs)
 
         self.numerical_tab = QtWidgets.QWidget()
-        self.graphs_tab = QtWidgets.QWidget()
-
         self.tabs.addTab(self.numerical_tab, "Numerical Statistics")
-        self.tabs.addTab(self.graphs_tab, "Graphs")
+        
+        # Conditionally create graphs tab based on chart availability
+        if CHARTS_AVAILABLE:
+            self.graphs_tab = QtWidgets.QWidget()
+            self.tabs.addTab(self.graphs_tab, "Graphs")
+        else:
+            self.graphs_tab = None
+            self._add_light_version_info()
 
         # Setup tabs
         self.setup_numerical_statistics_tab()
-        self.setup_graphs_tab()
         
-        # Initialize ChartManager after chart_view is created
-        self.chart_manager = ChartManager(self.chart_view)
-        
-        # Initialize intelligent suggestion system
-        from analysis.analysis_module.variable_suggestions import IntelligentVariableSuggester
-        self.suggestion_engine = IntelligentVariableSuggester()
-        
-        # Populate theme combo with available themes
-        self.populate_theme_combo()
+        # Chart-related initialization only if charts are available
+        if CHARTS_AVAILABLE:
+            self.setup_graphs_tab()
+            
+            # Initialize ChartManager after chart_view is created
+            self.chart_manager = ChartManager(self.chart_view)
+            
+            # Initialize intelligent suggestion system
+            from analysis.analysis_module.variable_suggestions import IntelligentVariableSuggester
+            self.suggestion_engine = IntelligentVariableSuggester()
+            
+            # Populate theme combo with available themes
+            self.populate_theme_combo()
+        else:
+            # Light version - no chart components
+            self.chart_manager = None
+            self.suggestion_engine = None
         
         # Initialize data
         self.current_week_id = None
         self.current_start_date = None
         self.current_end_date = None
+        
+        # Setup event bus listeners
+        self.setup_event_bus_listeners()
+
+    def _add_light_version_info(self):
+        """Add informational tab for light version explaining missing charting features"""
+        info_tab = QtWidgets.QWidget()
+        self.tabs.addTab(info_tab, "Charts (Upgrade Available)")
+        
+        info_layout = QtWidgets.QVBoxLayout(info_tab)
+        info_layout.setSpacing(20)
+        info_layout.setContentsMargins(40, 40, 40, 40)
+        
+        # Title
+        title_label = QtWidgets.QLabel("📊 Advanced Charting Available in Full Version")
+        title_label.setStyleSheet("""
+            QLabel {
+                font-size: 18px;
+                font-weight: bold;
+                color: #D6D6D6;
+                margin-bottom: 10px;
+            }
+        """)
+        title_label.setAlignment(QtCore.Qt.AlignCenter)
+        info_layout.addWidget(title_label)
+        
+        # Description
+        description_label = QtWidgets.QLabel("""
+        <div style='text-align: center; line-height: 1.6;'>
+        <p style='font-size: 14px; color: #B0B0B0; margin-bottom: 20px;'>
+        You're using <strong>Auditor Helper Light</strong> - perfect for essential task tracking and numerical analysis.
+        </p>
+        
+        <p style='font-size: 13px; color: #A0A0A0; margin-bottom: 15px;'>
+        <strong>The Full Version includes advanced charting features:</strong>
+        </p>
+        
+        <ul style='text-align: left; display: inline-block; font-size: 12px; color: #909090;'>
+        <li>📈 Interactive line, bar, scatter, and pie charts</li>
+        <li>📊 Statistical box plots and heatmaps</li>
+        <li>🎨 15+ professional themes and gradient palettes</li>
+        <li>✨ Smooth animations and visual effects</li>
+        <li>📤 High-quality chart export (SVG, PDF, PNG)</li>
+        <li>🔍 Advanced analytics with correlation analysis</li>
+        <li>⚡ Background rendering for complex visualizations</li>
+        </ul>
+        
+        <p style='font-size: 12px; color: #808080; margin-top: 20px;'>
+        All numerical statistics and task management features are fully available in this version.
+        </p>
+        </div>
+        """)
+        description_label.setWordWrap(True)
+        description_label.setAlignment(QtCore.Qt.AlignCenter)
+        info_layout.addWidget(description_label)
+        
+        # Spacer
+        info_layout.addStretch()
+        
+        # Version info
+        version_label = QtWidgets.QLabel("Auditor Helper Light v0.18.3")
+        version_label.setStyleSheet("""
+            QLabel {
+                font-size: 10px;
+                color: #606060;
+                margin-top: 20px;
+            }
+        """)
+        version_label.setAlignment(QtCore.Qt.AlignCenter)
+        info_layout.addWidget(version_label)
+
+    def setup_event_bus_listeners(self):
+        """Set up event bus listeners for analysis widget"""
+        # Task-related events that should trigger analysis refresh
+        self.event_bus.connect_handler(EventType.TASK_CREATED, self.on_task_event)
+        self.event_bus.connect_handler(EventType.TASK_UPDATED, self.on_task_event)
+        self.event_bus.connect_handler(EventType.TASK_DELETED, self.on_task_event)
+        self.event_bus.connect_handler(EventType.TASKS_BULK_UPDATED, self.on_task_event)
+        
+        # Week-related events
+        self.event_bus.connect_handler(EventType.WEEK_CREATED, self.on_week_event)
+        self.event_bus.connect_handler(EventType.WEEK_DELETED, self.on_week_event)
+        self.event_bus.connect_handler(EventType.WEEK_CHANGED, self.on_week_changed_event)
+        
+        # Timer events that might affect analysis
+        self.event_bus.connect_handler(EventType.TIMER_STOPPED, self.on_timer_stopped_event)
+        
+        # Analysis-specific events
+        self.event_bus.connect_handler(EventType.ANALYSIS_REFRESH_REQUESTED, self.on_analysis_refresh_requested_event)
+
+    def on_task_event(self, event_data):
+        """Handle task-related events that should trigger analysis refresh"""
+        # Only refresh if we have an active analysis context
+        if self.current_week_id or (self.current_start_date and self.current_end_date):
+            # Emit analysis refresh event to notify other components
+            self.event_bus.emit_event(
+                EventType.ANALYSIS_REFRESH_REQUESTED,
+                {
+                    'reason': 'task_data_changed',
+                    'source_event': event_data.event_type.value,
+                    'week_id': self.current_week_id,
+                    'start_date': self.current_start_date.isoformat() if self.current_start_date else None,
+                    'end_date': self.current_end_date.isoformat() if self.current_end_date else None
+                },
+                'AnalysisWidget'
+            )
+            
+            # Refresh the analysis
+            if self.current_week_id:
+                self.refresh_analysis_by_week(self.current_week_id)
+            elif self.current_start_date and self.current_end_date:
+                self.refresh_analysis_by_time_range(self.current_start_date, self.current_end_date)
+
+    def on_week_event(self, event_data):
+        """Handle week-related events"""
+        # Refresh week combo to show new/updated weeks
+        self.refresh_week_combo()
+        
+        # If the current week was deleted, clear the analysis
+        if event_data.event_type == EventType.WEEK_DELETED:
+            deleted_week_id = event_data.data.get('week_id')
+            if deleted_week_id == self.current_week_id:
+                self.clear_all_data()
+                self.current_week_id = None
+
+    def on_week_changed_event(self, event_data):
+        """Handle week changed events from other components"""
+        week_id = event_data.data.get('week_id')
+        
+        # Update our week combo selection to match
+        if week_id:
+            for i in range(self.week_combo.count()):
+                if self.week_combo.itemData(i) == week_id:
+                    self.week_combo.setCurrentIndex(i)
+                    break
+
+    def on_timer_stopped_event(self, event_data):
+        """Handle timer stopped events that might affect analysis"""
+        # Only refresh if the timer was for a task in our current analysis context
+        task_id = event_data.data.get('task_id')
+        duration_changed = event_data.data.get('duration_changed', False)
+        
+        if duration_changed and (self.current_week_id or (self.current_start_date and self.current_end_date)):
+            # Refresh analysis to reflect updated task durations
+            if self.current_week_id:
+                self.refresh_analysis_by_week(self.current_week_id)
+            elif self.current_start_date and self.current_end_date:
+                self.refresh_analysis_by_time_range(self.current_start_date, self.current_end_date)
+
+    def on_analysis_refresh_requested_event(self, event_data):
+        """Handle analysis refresh requests from other components"""
+        # Only respond to external requests (not our own)
+        if event_data.source != 'AnalysisWidget':
+            reason = event_data.data.get('reason')
+            week_id = event_data.data.get('week_id')
+            
+            # Refresh based on the request
+            if week_id and week_id == self.current_week_id:
+                self.refresh_analysis_by_week(week_id)
+            elif self.current_start_date and self.current_end_date:
+                self.refresh_analysis_by_time_range(self.current_start_date, self.current_end_date)
 
     def create_data_selection_controls(self, main_layout):
         """Create the data selection controls for time range and week selection"""
@@ -544,6 +742,14 @@ class AnalysisWidget(QtWidgets.QMainWindow):
         self.generate_chart_btn.clicked.connect(self.generate_chart)
         chart_config_inner_layout.addWidget(self.generate_chart_btn)
         
+        # Create chart export button
+        self.export_chart_btn = QtWidgets.QPushButton("Export Chart")
+        self.export_chart_btn.setIcon(QtWidgets.QApplication.style().standardIcon(QtWidgets.QStyle.SP_DialogSaveButton))
+        self.export_chart_btn.setMinimumHeight(30)
+        self.export_chart_btn.setEnabled(False)  # Disabled until chart is generated
+        self.export_chart_btn.clicked.connect(self.open_export_dialog)
+        chart_config_inner_layout.addWidget(self.export_chart_btn)
+        
         # Chart Compatibility Status
         self.chart_compatibility_label = QtWidgets.QLabel("Select variables and chart type")
         self.chart_compatibility_label.setStyleSheet("QLabel { color: #A0A0A0; font-size: 9px; }")
@@ -750,7 +956,10 @@ class AnalysisWidget(QtWidgets.QMainWindow):
     
     def populate_theme_combo(self):
         """Populate the theme combo with available chart themes"""
-        if hasattr(self, 'chart_manager'):
+        if not CHARTS_AVAILABLE:
+            return
+            
+        if hasattr(self, 'chart_manager') and self.chart_manager:
             themes = self.chart_manager.get_available_themes()
             self.theme_combo.clear()
             
@@ -774,7 +983,10 @@ class AnalysisWidget(QtWidgets.QMainWindow):
     
     def on_theme_changed(self):
         """Handle theme selection change"""
-        if hasattr(self, 'chart_manager'):
+        if not CHARTS_AVAILABLE:
+            return
+            
+        if hasattr(self, 'chart_manager') and self.chart_manager:
             current_index = self.theme_combo.currentIndex()
             if current_index >= 0:
                 theme_name = self.theme_combo.itemData(current_index)
@@ -790,6 +1002,9 @@ class AnalysisWidget(QtWidgets.QMainWindow):
 
     def populate_variable_dropdowns(self):
         """Populate the X and Y variable dropdown menus with constrained options"""
+        if not CHARTS_AVAILABLE:
+            return
+            
         # Clear existing items (keep default "Select..." items)
         self.x_variable_combo.clear()
         self.y_variable_combo.clear()
@@ -872,7 +1087,7 @@ class AnalysisWidget(QtWidgets.QMainWindow):
     
     def update_variable_suggestions(self):
         """Update variable suggestions based on current selection"""
-        if not hasattr(self, 'suggestion_engine'):
+        if not CHARTS_AVAILABLE or not hasattr(self, 'suggestion_engine'):
             return
         
         # Get current context
@@ -968,6 +1183,9 @@ class AnalysisWidget(QtWidgets.QMainWindow):
     
     def generate_chart(self):
         """Generate chart based on selected variables and chart type with constrained flexibility"""
+        if not CHARTS_AVAILABLE:
+            return
+            
         try:
             print("🔍 DEBUG: Starting chart generation...")
             
@@ -1060,9 +1278,12 @@ class AnalysisWidget(QtWidgets.QMainWindow):
             # Map chart type to format expected by ChartManager
             chart_type_mapping = {
                 'line': 'Line Chart',
-                'bar': 'Bar Chart'
+                'bar': 'Bar Chart',
+                'scatter': 'Scatter Plot',
+                'pie': 'Pie Chart',
+                'box_plot': 'Box Plot'
             }
-            chart_type_display = chart_type_mapping.get(chart_type, 'Bar Chart')
+            chart_type_display = chart_type_mapping.get(chart_type, chart_type)
             
             # Generate the chart
             self.chart_manager.create_chart(
@@ -1082,6 +1303,9 @@ class AnalysisWidget(QtWidgets.QMainWindow):
             
             # Apply any selected statistical overlays
             self.apply_statistical_overlays()
+            
+            # Enable export button after successful chart generation
+            self.export_chart_btn.setEnabled(True)
                 
         except Exception as e:
             # Handle unexpected errors gracefully
@@ -1431,23 +1655,31 @@ class AnalysisWidget(QtWidgets.QMainWindow):
 
     
     def clear_all_data(self):
-        """Clear all data from tables"""
-        # Clear aggregate table
-        for col in range(self.aggregate_table.columnCount()):
-            item = QtWidgets.QTableWidgetItem("")
-            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-            self.aggregate_table.setItem(0, col, item)
+        """Clear all data and charts"""
+        # Clear chart view
+        if hasattr(self, 'chart_manager'):
+            self.chart_manager.clear_chart()
         
-        # Clear daily table
+        # Disable export button when clearing
+        if hasattr(self, 'export_chart_btn'):
+            self.export_chart_btn.setEnabled(False)
+        
+        # Clear tables
+        self.aggregate_table.setRowCount(0)
         self.daily_table.setRowCount(0)
-        
-        # Clear project tables
         self.project_aggregate_table.setRowCount(0)
-        self.daily_project_table.setRowCount(0)
         
-        # Clear daily project dropdown
+        # Clear dropdowns
         self.daily_project_combo.clear()
-        self.daily_project_combo.addItem("Select a day...", None)
+        self.daily_project_combo.addItem("Select a day to see project data...")
+        
+        # Clear status
+        self.current_week_id = None
+        self.current_start_date = None
+        self.current_end_date = None
+        
+        # Update status
+        self.update_current_status_display()
 
     def on_chart_type_changed(self):
         """Handle chart type change"""
@@ -1734,5 +1966,28 @@ class AnalysisWidget(QtWidgets.QMainWindow):
                 self.outliers_checkbox.setChecked(False)
                 # Note: Keep hover tooltips enabled even when pane is collapsed
                 self.regenerate_chart_without_overlays()
+    
+    def open_export_dialog(self):
+        """Open the chart export dialog"""
+        if not CHARTS_AVAILABLE:
+            return
+        try:
+            from ui.chart_export_dialog import ChartExportDialog
+            
+            if not hasattr(self, 'chart_manager') or not self.chart_manager:
+                QtWidgets.QMessageBox.warning(self, "Export Error", 
+                                            "No chart available to export. Please generate a chart first.")
+                return
+            
+            # Open export dialog
+            export_dialog = ChartExportDialog(self.chart_manager, self)
+            export_dialog.exec()
+            
+        except ImportError as e:
+            QtWidgets.QMessageBox.critical(self, "Export Error", 
+                                         f"Export functionality not available: {e}")
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Export Error", 
+                                         f"Error opening export dialog: {e}")
 
 

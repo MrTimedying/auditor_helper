@@ -1,0 +1,20 @@
+# Light version requirements - essential features only (no charting dependencies)
+# Generated for Auditor Helper v0.18.3 Light Variant
+
+# Core GUI Framework
+PySide6>=6.5.0
+
+# Data processing and analysis
+pandas>=1.5.0
+numpy>=1.21.0
+
+# System monitoring and performance
+psutil>=5.9.0
+
+# Build tool
+pyinstaller>=5.10.0
+
+# Optional dependencies for enhanced functionality
+packaging>=21.0
+
+# Note: Charting dependencies (matplotlib, seaborn, scikit-learn) excluded for lighter build 

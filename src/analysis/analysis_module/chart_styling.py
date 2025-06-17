@@ -6,10 +6,9 @@ themes, responsive design, accessibility features, and professional formatting.
 """
 
 from typing import Dict, List, Tuple, Any, Optional
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib import rcParams
-import numpy as np
+from PySide6 import QtGui, QtCore, QtWidgets
+# Lazy imports for matplotlib - deferred until first use
+from core.optimization.lazy_imports import get_lazy_manager
 
 class ChartTheme:
     """Represents a complete chart theme with colors, fonts, and styling options"""
@@ -22,13 +21,240 @@ class ChartTheme:
         self.layout = layout
         self.accessibility = accessibility or {}
 
+class QtChartStyleEnhancer:
+    """Enhanced styling capabilities specifically for Qt Charts with gradients and modern effects"""
+    
+    def __init__(self):
+        # Modern gradient color schemes
+        self.gradient_palettes = {
+            "ocean": {
+                "primary": ["#667eea", "#764ba2"],
+                "secondary": ["#f093fb", "#f5576c"],
+                "accent": ["#4facfe", "#00f2fe"]
+            },
+            "sunset": {
+                "primary": ["#fa709a", "#fee140"],
+                "secondary": ["#ffd89b", "#19547b"],
+                "accent": ["#667eea", "#764ba2"]
+            },
+            "forest": {
+                "primary": ["#134e5e", "#71b280"],
+                "secondary": ["#a8edea", "#fed6e3"],
+                "accent": ["#d299c2", "#fef9d7"]
+            },
+            "aurora": {
+                "primary": ["#2196f3", "#21cbf3"],
+                "secondary": ["#45b7d1", "#96c93d"],
+                "accent": ["#667eea", "#764ba2"]
+            },
+            "professional": {
+                "primary": ["#5E81AC", "#88C0D0"],
+                "secondary": ["#81A1C1", "#A3BE8C"],
+                "accent": ["#EBCB8B", "#D08770"]
+            },
+            # NEW: Enhanced gradient collections
+            "cosmic": {
+                "primary": ["#4338ca", "#7c3aed"],
+                "secondary": ["#c026d3", "#f59e0b"],
+                "accent": ["#06b6d4", "#10b981"]
+            },
+            "fire": {
+                "primary": ["#ef4444", "#f97316"],
+                "secondary": ["#f59e0b", "#eab308"],
+                "accent": ["#84cc16", "#22c55e"]
+            },
+            "ice": {
+                "primary": ["#0ea5e9", "#06b6d4"],
+                "secondary": ["#8b5cf6", "#a855f7"],
+                "accent": ["#ec4899", "#f43f5e"]
+            },
+            "earth": {
+                "primary": ["#78716c", "#a3a3a3"],
+                "secondary": ["#84cc16", "#22c55e"],
+                "accent": ["#f59e0b", "#ef4444"]
+            },
+            "neon": {
+                "primary": ["#00ff41", "#00d4ff"],
+                "secondary": ["#ff0080", "#ff4000"],
+                "accent": ["#8000ff", "#0080ff"]
+            }
+        }
+        
+        # Modern solid color schemes for fallback
+        self.modern_palettes = {
+            "vibrant": ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F"],
+            "corporate": ["#2C3E50", "#3498DB", "#E74C3C", "#F39C12", "#27AE60", "#9B59B6", "#E67E22", "#1ABC9C"],
+            "pastel": ["#FFB3BA", "#BAFFC9", "#BAE1FF", "#FFFFBA", "#FFDFBA", "#E0BBE4", "#FFC9DE", "#C9C9FF"],
+            "dark": ["#64FFDA", "#00BCD4", "#2196F3", "#9C27B0", "#E91E63", "#F44336", "#FF9800", "#4CAF50"],
+            # NEW: Enhanced modern palettes
+            "neo": ["#FF6B9D", "#45D1DC", "#FFE66D", "#A8E6CF", "#9B59B6", "#FF8C94", "#A8E6CF", "#C7CEEA"],
+            "electric": ["#00F5FF", "#FF1744", "#76FF03", "#FFEA00", "#E91E63", "#3F51B5", "#FF9800", "#4CAF50"],
+            "warm": ["#FF5722", "#FF9800", "#FFC107", "#FFEB3B", "#CDDC39", "#8BC34A", "#4CAF50", "#009688"],
+            "cool": ["#2196F3", "#03DAC6", "#00BCD4", "#009688", "#4CAF50", "#8BC34A", "#CDDC39", "#FFC107"],
+            "monochrome": ["#212121", "#424242", "#616161", "#757575", "#9E9E9E", "#BDBDBD", "#E0E0E0", "#F5F5F5"],
+            "rainbow": ["#FF0000", "#FF8000", "#FFFF00", "#80FF00", "#00FF00", "#00FF80", "#00FFFF", "#0080FF"]
+        }
+    
+    def create_gradient_brush(self, start_color: str, end_color: str, direction: str = "vertical") -> QtGui.QBrush:
+        """Create a gradient brush for Qt Charts"""
+        gradient = QtGui.QLinearGradient()
+        
+        if direction == "vertical":
+            gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+            gradient.setStart(0, 0)
+            gradient.setFinalStop(0, 1)
+        elif direction == "horizontal":
+            gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+            gradient.setStart(0, 0)
+            gradient.setFinalStop(1, 0)
+        elif direction == "diagonal":
+            gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+            gradient.setStart(0, 0)
+            gradient.setFinalStop(1, 1)
+        
+        gradient.setColorAt(0, QtGui.QColor(start_color))
+        gradient.setColorAt(1, QtGui.QColor(end_color))
+        
+        return QtGui.QBrush(gradient)
+    
+    def create_radial_gradient_brush(self, center_color: str, edge_color: str, center_x: float = 0.5, center_y: float = 0.5) -> QtGui.QBrush:
+        """Create a radial gradient brush for modern chart effects"""
+        gradient = QtGui.QRadialGradient()
+        gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+        gradient.setCenter(center_x, center_y)
+        gradient.setRadius(0.8)
+        
+        gradient.setColorAt(0, QtGui.QColor(center_color))
+        gradient.setColorAt(1, QtGui.QColor(edge_color))
+        
+        return QtGui.QBrush(gradient)
+    
+    def create_shadow_effect(self, blur_radius: int = 10, offset_x: int = 2, offset_y: int = 2, opacity: float = 0.3) -> QtWidgets.QGraphicsDropShadowEffect:
+        """Create a drop shadow effect for chart elements"""
+        shadow = QtWidgets.QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(blur_radius)
+        shadow.setOffset(offset_x, offset_y)
+        shadow.setColor(QtGui.QColor(0, 0, 0, int(opacity * 255)))
+        return shadow
+    
+    def get_gradient_colors_for_palette(self, palette_name: str, count: int = 1) -> List[Tuple[str, str]]:
+        """Get gradient color pairs for a specific palette"""
+        if palette_name not in self.gradient_palettes:
+            palette_name = "professional"
+        
+        palette = self.gradient_palettes[palette_name]
+        gradient_pairs = []
+        
+        # Create gradient pairs from the palette
+        primary = palette["primary"]
+        secondary = palette["secondary"]
+        accent = palette["accent"]
+        
+        all_gradients = [primary, secondary, accent]
+        
+        for i in range(count):
+            gradient_pairs.append(all_gradients[i % len(all_gradients)])
+        
+        return gradient_pairs
+    
+    def apply_modern_styling_to_series(self, series, style_config: Dict[str, Any]):
+        """Apply modern styling to a Qt Charts series"""
+        if hasattr(series, 'setPen'):  # Line series
+            pen = series.pen()
+            if 'gradient' in style_config:
+                # For line charts, we'll use a solid color but with enhanced styling
+                pen.setColor(QtGui.QColor(style_config['gradient'][0]))
+                pen.setWidth(style_config.get('line_width', 3))
+                pen.setCapStyle(QtCore.Qt.RoundCap)
+                pen.setJoinStyle(QtCore.Qt.RoundJoin)
+                series.setPen(pen)
+        
+        if hasattr(series, 'setBrush'):  # Area series or bars
+            if 'gradient' in style_config:
+                gradient_brush = self.create_gradient_brush(
+                    style_config['gradient'][0], 
+                    style_config['gradient'][1],
+                    style_config.get('gradient_direction', 'vertical')
+                )
+                series.setBrush(gradient_brush)
+    
+    def create_advanced_shadow_effect(self, shadow_type: str = "drop", blur_radius: int = 15, offset_x: int = 3, offset_y: int = 3, opacity: float = 0.4) -> QtWidgets.QGraphicsDropShadowEffect:
+        """Create advanced shadow effects with different types"""
+        shadow = QtWidgets.QGraphicsDropShadowEffect()
+        
+        if shadow_type == "glow":
+            # Glow effect - no offset, high blur
+            shadow.setBlurRadius(blur_radius * 1.5)
+            shadow.setOffset(0, 0)
+            shadow.setColor(QtGui.QColor(100, 200, 255, int(opacity * 255)))
+        elif shadow_type == "inner":
+            # Inner shadow simulation
+            shadow.setBlurRadius(blur_radius // 2)
+            shadow.setOffset(-offset_x, -offset_y)
+            shadow.setColor(QtGui.QColor(0, 0, 0, int(opacity * 200)))
+        elif shadow_type == "long":
+            # Long shadow effect
+            shadow.setBlurRadius(blur_radius // 3)
+            shadow.setOffset(offset_x * 3, offset_y * 3)
+            shadow.setColor(QtGui.QColor(0, 0, 0, int(opacity * 150)))
+        else:  # drop (default)
+            shadow.setBlurRadius(blur_radius)
+            shadow.setOffset(offset_x, offset_y)
+            shadow.setColor(QtGui.QColor(0, 0, 0, int(opacity * 255)))
+        
+        return shadow
+    
+    def create_multi_gradient_brush(self, colors: List[str], direction: str = "vertical") -> QtGui.QBrush:
+        """Create gradient brush with multiple color stops"""
+        if len(colors) < 2:
+            colors = colors + ["#FFFFFF"]  # Fallback
+        
+        gradient = QtGui.QLinearGradient()
+        
+        if direction == "vertical":
+            gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+            gradient.setStart(0, 0)
+            gradient.setFinalStop(0, 1)
+        elif direction == "horizontal":
+            gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+            gradient.setStart(0, 0)
+            gradient.setFinalStop(1, 0)
+        elif direction == "diagonal":
+            gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+            gradient.setStart(0, 0)
+            gradient.setFinalStop(1, 1)
+        
+        # Distribute colors evenly across gradient
+        for i, color in enumerate(colors):
+            position = i / (len(colors) - 1) if len(colors) > 1 else 0
+            gradient.setColorAt(position, QtGui.QColor(color))
+        
+        return QtGui.QBrush(gradient)
+    
+    def create_conical_gradient_brush(self, center_color: str, edge_color: str, center_x: float = 0.5, center_y: float = 0.5, angle: float = 0) -> QtGui.QBrush:
+        """Create conical (angular) gradient brush for special effects"""
+        gradient = QtGui.QConicalGradient()
+        gradient.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+        gradient.setCenter(center_x, center_y)
+        gradient.setAngle(angle)
+        
+        gradient.setColorAt(0, QtGui.QColor(center_color))
+        gradient.setColorAt(1, QtGui.QColor(edge_color))
+        
+        return QtGui.QBrush(gradient)
+
 class ChartStyleManager:
     """Advanced chart styling system with themes, responsive design, and accessibility"""
     
     def __init__(self):
         self.current_theme = "professional"
         self.custom_themes = {}
+        self._lazy_manager = get_lazy_manager()
+        self._setup_lazy_imports()
         self._initialize_built_in_themes()
+        
+        # NEW: Qt Charts style enhancer
+        self.qt_enhancer = QtChartStyleEnhancer()
         
         # Base styling configuration
         self.base_config = {
@@ -45,10 +271,39 @@ class ChartStyleManager:
             'figure.titlesize': 16
         }
     
+    def _setup_lazy_imports(self):
+        """Setup lazy imports for heavy scientific libraries"""
+        # Register matplotlib and numpy for lazy loading
+        self._lazy_manager.register_module('matplotlib', 'matplotlib.pyplot')
+        self._lazy_manager.register_module('matplotlib_patches', 'matplotlib.patches')
+        self._lazy_manager.register_module('matplotlib_rcparams', 'matplotlib')
+        self._lazy_manager.register_module('numpy', 'numpy')
+    
+    @property
+    def plt(self):
+        """Lazy-loaded matplotlib.pyplot module"""
+        return self._lazy_manager.get_module('matplotlib')
+    
+    @property
+    def patches(self):
+        """Lazy-loaded matplotlib.patches module"""
+        return self._lazy_manager.get_module('matplotlib_patches')
+    
+    @property
+    def rcParams(self):
+        """Lazy-loaded matplotlib rcParams"""
+        matplotlib_module = self._lazy_manager.get_module('matplotlib_rcparams')
+        return matplotlib_module.rcParams
+    
+    @property
+    def np(self):
+        """Lazy-loaded numpy module"""
+        return self._lazy_manager.get_module('numpy')
+    
     def _initialize_built_in_themes(self):
         """Initialize built-in chart themes"""
         
-        # Professional Business Theme
+        # Professional Business Theme - ENHANCED with gradients
         self.built_in_themes = {
             "professional": ChartTheme(
                 name="Professional",
@@ -59,12 +314,18 @@ class ChartStyleManager:
                     "success": "#A3BE8C",
                     "warning": "#EBCB8B",
                     "error": "#BF616A",
-                    "background": "#FFFFFF",
-                    "surface": "#F8F9FA",
-                    "text": "#2E3440",
-                    "text_light": "#4C566A",
-                    "grid": "#E5E7EB",
-                    "palette": ["#5E81AC", "#88C0D0", "#81A1C1", "#A3BE8C", "#EBCB8B", "#D08770", "#BF616A", "#B48EAD"]
+                    "background": "#232423",  # Changed from #FFFFFF to match app's dark theme
+                    "surface": "#2a2b2a",     # Slightly lighter than background
+                    "text": "#D6D6D6",       # Light text for dark background
+                    "text_light": "#B0B0B0", # Adjusted for dark background
+                    "grid": "#404040",       # Dark grid lines
+                    "palette": ["#5E81AC", "#88C0D0", "#81A1C1", "#A3BE8C", "#EBCB8B", "#D08770", "#BF616A", "#B48EAD"],
+                    # NEW: Gradient configurations
+                    "gradients": {
+                        "primary": ["#5E81AC", "#88C0D0"],
+                        "secondary": ["#81A1C1", "#A3BE8C"],
+                        "accent": ["#EBCB8B", "#D08770"]
+                    }
                 },
                 typography={
                     "font_family": "Source Sans Pro",
@@ -81,7 +342,11 @@ class ChartStyleManager:
                     "spine_width": 0.8,
                     "tick_length": 4,
                     "legend_frameon": True,
-                    "legend_shadow": False
+                    "legend_shadow": False,
+                    # NEW: Modern styling options
+                    "use_gradients": True,
+                    "shadow_effects": True,
+                    "rounded_corners": True
                 },
                 accessibility={
                     "high_contrast": False,
@@ -90,7 +355,7 @@ class ChartStyleManager:
                 }
             ),
             
-            # Modern Dark Theme
+            # Modern Dark Theme - ENHANCED with gradients
             "dark": ChartTheme(
                 name="Dark Mode",
                 colors={
@@ -105,7 +370,13 @@ class ChartStyleManager:
                     "text": "#FFFFFF",
                     "text_light": "#B0B0B0",
                     "grid": "#404040",
-                    "palette": ["#64FFDA", "#00BCD4", "#2196F3", "#9C27B0", "#E91E63", "#F44336", "#FF9800", "#4CAF50"]
+                    "palette": ["#64FFDA", "#00BCD4", "#2196F3", "#9C27B0", "#E91E63", "#F44336", "#FF9800", "#4CAF50"],
+                    # NEW: Dark theme gradients
+                    "gradients": {
+                        "primary": ["#64FFDA", "#00BCD4"],
+                        "secondary": ["#2196F3", "#9C27B0"],
+                        "accent": ["#E91E63", "#F44336"]
+                    }
                 },
                 typography={
                     "font_family": "Inter",
@@ -122,7 +393,12 @@ class ChartStyleManager:
                     "spine_width": 0.5,
                     "tick_length": 3,
                     "legend_frameon": False,
-                    "legend_shadow": False
+                    "legend_shadow": False,
+                    # NEW: Enhanced dark theme styling
+                    "use_gradients": True,
+                    "shadow_effects": True,
+                    "rounded_corners": True,
+                    "glow_effects": True  # Special for dark theme
                 },
                 accessibility={
                     "high_contrast": True,
@@ -131,7 +407,7 @@ class ChartStyleManager:
                 }
             ),
             
-            # Minimal Clean Theme
+            # Minimal Clean Theme - ENHANCED with subtle gradients
             "minimal": ChartTheme(
                 name="Minimal",
                 colors={
@@ -146,7 +422,13 @@ class ChartStyleManager:
                     "text": "#1A1A1A",
                     "text_light": "#8E8E93",
                     "grid": "#F2F2F7",
-                    "palette": ["#007AFF", "#5AC8FA", "#34C759", "#FF9500", "#FF3B30", "#AF52DE", "#FF2D92", "#5856D6"]
+                    "palette": ["#007AFF", "#5AC8FA", "#34C759", "#FF9500", "#FF3B30", "#AF52DE", "#FF2D92", "#5856D6"],
+                    # NEW: Minimal theme subtle gradients
+                    "gradients": {
+                        "primary": ["#007AFF", "#5AC8FA"],
+                        "secondary": ["#34C759", "#FF9500"],
+                        "accent": ["#AF52DE", "#FF2D92"]
+                    }
                 },
                 typography={
                     "font_family": "SF Pro Display",
@@ -163,7 +445,11 @@ class ChartStyleManager:
                     "spine_width": 0,
                     "tick_length": 0,
                     "legend_frameon": False,
-                    "legend_shadow": False
+                    "legend_shadow": False,
+                    # NEW: Minimal modern styling
+                    "use_gradients": False,  # Very subtle or no gradients
+                    "shadow_effects": False,  # Clean, no shadows
+                    "rounded_corners": True
                 },
                 accessibility={
                     "high_contrast": False,
@@ -235,39 +521,62 @@ class ChartStyleManager:
             return self.built_in_themes["professional"]
     
     def _apply_theme_to_matplotlib(self):
-        """Apply the current theme to matplotlib's global settings"""
-        theme = self.get_theme()
-        
-        # Update rcParams with theme values
-        config = self.base_config.copy()
-        
-        # Colors
-        config['figure.facecolor'] = theme.colors['background']
-        config['axes.facecolor'] = theme.colors['background']
-        config['savefig.facecolor'] = theme.colors['background']
-        config['text.color'] = theme.colors['text']
-        config['axes.labelcolor'] = theme.colors['text']
-        config['xtick.color'] = theme.colors['text']
-        config['ytick.color'] = theme.colors['text']
-        config['axes.edgecolor'] = theme.colors['text_light']
-        
-        # Typography
-        config['font.size'] = theme.typography['label_size']
-        config['axes.titlesize'] = theme.typography['title_size']
-        config['axes.labelsize'] = theme.typography['label_size']
-        config['xtick.labelsize'] = theme.typography['tick_size']
-        config['ytick.labelsize'] = theme.typography['tick_size']
-        config['legend.fontsize'] = theme.typography['legend_size']
-        config['figure.titlesize'] = theme.typography['title_size']
-        
-        # Layout
-        config['axes.linewidth'] = theme.layout['spine_width']
-        config['xtick.major.size'] = theme.layout['tick_length']
-        config['ytick.major.size'] = theme.layout['tick_length']
-        config['legend.frameon'] = theme.layout['legend_frameon']
-        
-        # Apply to matplotlib
-        rcParams.update(config)
+        """Apply current theme to matplotlib global settings with error handling"""
+        try:
+            theme = self.get_theme()
+            
+            # Build matplotlib configuration
+            config = self.base_config.copy()
+            
+            # Apply theme colors
+            config.update({
+                'figure.facecolor': theme.colors['background'],
+                'axes.facecolor': theme.colors['background'],
+                'savefig.facecolor': theme.colors['background'],
+                'text.color': theme.colors['text'],
+                'axes.labelcolor': theme.colors['text'],
+                'xtick.color': theme.colors['text'],
+                'ytick.color': theme.colors['text'],
+                'axes.edgecolor': theme.colors['grid'],
+                'grid.color': theme.colors['grid'],
+                'grid.alpha': theme.layout['grid_alpha']
+            })
+            
+            # Apply typography
+            config.update({
+                'font.family': theme.typography['font_family'],
+                'font.size': theme.typography['tick_size'],
+                'axes.titlesize': theme.typography['title_size'],
+                'axes.labelsize': theme.typography['label_size'],
+                'xtick.labelsize': theme.typography['tick_size'],
+                'ytick.labelsize': theme.typography['tick_size'],
+                'legend.fontsize': theme.typography['legend_size'],
+                'axes.titleweight': theme.typography['title_weight'],
+                'axes.labelweight': theme.typography['label_weight']
+            })
+            
+            # Apply layout
+            config.update({
+                'axes.spines.left': True,
+                'axes.spines.bottom': True,
+                'axes.spines.top': False,
+                'axes.spines.right': False,
+                'axes.linewidth': theme.layout['spine_width'],
+                'xtick.major.size': theme.layout['tick_length'],
+                'ytick.major.size': theme.layout['tick_length'],
+                'legend.frameon': theme.layout['legend_frameon'],
+                'legend.shadow': theme.layout['legend_shadow']
+            })
+            
+            # Update rcParams with theme values
+            self.rcParams.update(config)
+        except ImportError:
+            # Matplotlib not available - skip theme application
+            pass
+        except Exception as e:
+            # Log other errors but don't crash
+            import logging
+            logging.warning(f"Failed to apply matplotlib theme: {e}")
     
     def apply_chart_styling(self, fig, ax, chart_type: str, title: str = "", 
                           x_label: str = "", y_label: str = "", 
@@ -467,6 +776,101 @@ class ChartStyleManager:
     def get_available_themes(self) -> List[str]:
         """Get list of all available themes"""
         return list(self.built_in_themes.keys()) + list(self.custom_themes.keys())
+
+    # NEW: Qt Charts specific methods
+    def get_qt_gradient_brush(self, theme_name: str = None, gradient_type: str = "primary", direction: str = "vertical") -> QtGui.QBrush:
+        """Get a gradient brush for Qt Charts based on current theme"""
+        theme = self.get_theme(theme_name)
+        
+        if "gradients" in theme.colors and gradient_type in theme.colors["gradients"]:
+            gradient_colors = theme.colors["gradients"][gradient_type]
+            return self.qt_enhancer.create_gradient_brush(
+                gradient_colors[0], 
+                gradient_colors[1], 
+                direction
+            )
+        else:
+            # Fallback to solid color
+            color = theme.colors.get(gradient_type, theme.colors.get("primary", "#5E81AC"))
+            return QtGui.QBrush(QtGui.QColor(color))
+    
+    def get_qt_shadow_effect(self, theme_name: str = None) -> QtWidgets.QGraphicsDropShadowEffect:
+        """Get a shadow effect for Qt Charts based on current theme"""
+        theme = self.get_theme(theme_name)
+        
+        if theme.layout.get("shadow_effects", False):
+            if theme.name == "Dark Mode":
+                # Stronger shadow for dark theme
+                return self.qt_enhancer.create_shadow_effect(
+                    blur_radius=15, offset_x=3, offset_y=3, opacity=0.5
+                )
+            else:
+                # Subtle shadow for light themes
+                return self.qt_enhancer.create_shadow_effect(
+                    blur_radius=10, offset_x=2, offset_y=2, opacity=0.3
+                )
+        return None
+    
+    def get_modern_color_palette(self, theme_name: str = None, palette_type: str = "vibrant") -> List[str]:
+        """Get modern color palette for Qt Charts"""
+        theme = self.get_theme(theme_name)
+        
+        # First try theme's own palette
+        if "palette" in theme.colors:
+            return theme.colors["palette"]
+        
+        # Fallback to modern palettes from Qt enhancer
+        if palette_type in self.qt_enhancer.modern_palettes:
+            return self.qt_enhancer.modern_palettes[palette_type]
+        
+        # Final fallback
+        return self.qt_enhancer.modern_palettes["corporate"]
+    
+    def apply_qt_series_styling(self, series, variable_name: str, series_index: int = 0, theme_name: str = None):
+        """Apply modern styling to a Qt Charts series"""
+        theme = self.get_theme(theme_name)
+        
+        # Get semantic color
+        base_color = self.get_semantic_color(variable_name, theme_name)
+        
+        # Build style configuration
+        style_config = {
+            "base_color": base_color,
+            "series_index": series_index
+        }
+        
+        # Add gradient if theme supports it
+        if theme.layout.get("use_gradients", False) and "gradients" in theme.colors:
+            gradients = list(theme.colors["gradients"].values())
+            gradient_pair = gradients[series_index % len(gradients)]
+            style_config["gradient"] = gradient_pair
+            style_config["gradient_direction"] = "vertical"
+        
+        # Enhanced line styling
+        if theme.layout.get("rounded_corners", False):
+            style_config["line_width"] = 3
+        else:
+            style_config["line_width"] = 2
+        
+        # Apply the styling
+        self.qt_enhancer.apply_modern_styling_to_series(series, style_config)
+        
+        return style_config
+    
+    def get_chart_background_brush(self, theme_name: str = None) -> QtGui.QBrush:
+        """Get chart background brush with optional gradient"""
+        theme = self.get_theme(theme_name)
+        
+        background_color = theme.colors.get("background", "#FFFFFF")
+        surface_color = theme.colors.get("surface", background_color)
+        
+        # For dark themes, use subtle gradient
+        if theme.name == "Dark Mode":
+            return self.qt_enhancer.create_gradient_brush(
+                background_color, surface_color, "diagonal"
+            )
+        else:
+            return QtGui.QBrush(QtGui.QColor(background_color))
     
     def export_theme_preview(self, output_path: str, theme_names: List[str] = None):
         """Export a preview image showing different themes"""
@@ -474,11 +878,11 @@ class ChartStyleManager:
             theme_names = list(self.built_in_themes.keys())
         
         # Create sample data
-        x = np.linspace(0, 10, 100)
-        y1 = np.sin(x)
-        y2 = np.cos(x)
+        x = self.np.linspace(0, 10, 100)
+        y1 = self.np.sin(x)
+        y2 = self.np.cos(x)
         
-        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        fig, axes = self.plt.subplots(2, 2, figsize=(15, 10))
         axes = axes.flatten()
         
         for i, theme_name in enumerate(theme_names[:4]):
@@ -498,9 +902,9 @@ class ChartStyleManager:
                                    x_label="X Values", 
                                    y_label="Y Values")
         
-        plt.tight_layout()
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        self.plt.tight_layout()
+        self.plt.savefig(output_path, dpi=300, bbox_inches='tight')
+        self.plt.close()
 
 class ResponsiveChartManager:
     """Manages responsive chart behavior and adaptive layouts"""

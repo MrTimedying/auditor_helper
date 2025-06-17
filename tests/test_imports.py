@@ -61,7 +61,7 @@ def test_relative_imports():
     print("\n🔍 Testing relative imports...")
     
     try:
-        from ui.task_grid import TaskGrid  # noqa: F401
+        from ui.qml_task_grid import QMLTaskGrid  # noqa: F401
         print("  ✅ task_grid with relative imports works")
         
         from ui.timer_dialog import TimerDialog  # noqa: F401

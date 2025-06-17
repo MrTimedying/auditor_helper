@@ -10,9 +10,10 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from task_grid import TaskGrid, TaskTableModel
+    from ui.qml_task_grid import QMLTaskGrid
+    from ui.qml_task_model import QMLTaskModel
 except ImportError:
-    print("Warning: Could not import TaskGrid - creating mock for testing")
+    print("Warning: Could not import QML TaskGrid - creating mock for testing")
     TaskTableModel = Mock
 
 class PerformanceTestCase(unittest.TestCase):

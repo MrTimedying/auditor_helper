@@ -498,6 +498,29 @@ class ChartInteractionManager(QObject):
         # Clear selection when new data is set
         self.clear_selection()
 
+    def set_box_plot_data(self, box_stats, variable_info: Dict[str, Any] = None, statistics: Dict[str, Any] = None):
+        """Set box plot data and metadata for tooltip generation.
+        
+        Args:
+            box_stats: BoxPlotStats object with quartiles, outliers, etc.
+            variable_info: Dictionary with variable metadata (name, unit, description)
+            statistics: Dictionary with box plot statistics
+        """
+        # Store box plot specific data
+        self.box_plot_stats = box_stats
+        self.y_variable_info = variable_info or {}
+        self.chart_statistics = statistics or {}
+        
+        # Convert box plot data to standard format for interaction
+        # For box plots, we'll use a representative data point at the median
+        if box_stats:
+            self.chart_data = [(0, box_stats.median)]  # Single point at median
+        else:
+            self.chart_data = []
+        
+        # Clear selection when new data is set
+        self.clear_selection()
+
     # ---------------------------------------------------------------------
     # Internal methods
     # ---------------------------------------------------------------------

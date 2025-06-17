@@ -7,10 +7,29 @@ from .base_page import BasePage
 import sqlite3
 from core.settings.global_settings import global_settings
 
+# Data Service Layer imports
+from core.services.data_service import DataService, DataServiceError
+from core.services.week_dao import WeekDAO
+
 
 class WeekCustomizationPage(BasePage):
     """Week-specific customization settings page"""
     
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        # Initialize Data Service Layer
+        try:
+            self.data_service = DataService.get_instance()
+            self.week_dao = WeekDAO(self.data_service)
+        except (DataServiceError, Exception) as e:
+            print(f"Warning: Failed to initialize Data Service Layer: {e}")
+            # Fallback to direct SQLite if needed
+            self.data_service = None
+            self.week_dao = None
+        
+        # Note: setup_ui() is called by BasePage.__init__, no need to call it again
+
     def setup_ui(self):
         """Setup the UI for the week customization settings page"""
         layout = QtWidgets.QVBoxLayout(self)
@@ -204,48 +223,82 @@ class WeekCustomizationPage(BasePage):
             print(f"Error loading week customization settings: {e}")
 
     def load_weeks(self):
-        """Load available weeks into the week combo box"""
+        """Load available weeks into the week combo box using Data Service Layer"""
         try:
-            conn = sqlite3.connect('tasks.db')
-            c = conn.cursor()
-            
-            c.execute("SELECT week_label FROM weeks ORDER BY id")
-            weeks = c.fetchall()
+            # Use Data Service Layer for week retrieval
+            if self.week_dao:
+                weeks_data = self.week_dao.get_all_weeks()
+                weeks = [(week['week_label'],) for week in weeks_data]  # Convert to tuple format
+            else:
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect('tasks.db')
+                c = conn.cursor()
+                c.execute("SELECT week_label FROM weeks ORDER BY id")
+                weeks = c.fetchall()
+                conn.close()
             
             self.week_combo.clear()
             for week in weeks:
                 self.week_combo.addItem(week[0])
             
-            conn.close()
-            
             if self.week_combo.count() > 0:
                 self.load_week_settings()
                 
-        except Exception as e:
+        except (DataServiceError, Exception) as e:
             print(f"Error loading weeks: {e}")
 
     def load_week_settings(self):
-        """Load settings for the selected week"""
-        if not self.week_combo.currentText():
+        """Load settings for the selected week using Data Service Layer"""
+        current_week = self.week_combo.currentText()
+        if not current_week:
             return
             
         try:
-            conn = sqlite3.connect('tasks.db')
-            c = conn.cursor()
-            
-            c.execute("""
-                SELECT week_start_day, week_start_hour, week_end_day, week_end_hour, 
-                       is_custom_duration, week_specific_bonus_payrate, 
-                       week_specific_bonus_start_day, week_specific_bonus_start_time,
-                       week_specific_bonus_end_day, week_specific_bonus_end_time,
-                       week_specific_enable_task_bonus, week_specific_bonus_task_threshold,
-                       week_specific_bonus_additional_amount, use_global_bonus_settings,
-                       office_hour_count, office_hour_payrate, office_hour_session_duration_minutes, use_global_office_hours_settings
-                FROM weeks WHERE week_label = ?
-            """, (self.week_combo.currentText(),))
-            
-            result = c.fetchone()
-            conn.close()
+            # Use Data Service Layer for week settings retrieval
+            if self.week_dao:
+                week_data = self.week_dao.get_week_by_label(self.week_combo.currentText())
+                if week_data:
+                    # Convert dict to tuple format for compatibility with existing logic
+                    result = (
+                        week_data.get('week_start_day'),
+                        week_data.get('week_start_hour'),
+                        week_data.get('week_end_day'),
+                        week_data.get('week_end_hour'),
+                        week_data.get('is_custom_duration'),
+                        week_data.get('week_specific_bonus_payrate'),
+                        week_data.get('week_specific_bonus_start_day'),
+                        week_data.get('week_specific_bonus_start_time'),
+                        week_data.get('week_specific_bonus_end_day'),
+                        week_data.get('week_specific_bonus_end_time'),
+                        week_data.get('week_specific_enable_task_bonus'),
+                        week_data.get('week_specific_bonus_task_threshold'),
+                        week_data.get('week_specific_bonus_additional_amount'),
+                        week_data.get('use_global_bonus_settings'),
+                        week_data.get('office_hour_count'),
+                        week_data.get('office_hour_payrate'),
+                        week_data.get('office_hour_session_duration_minutes'),
+                        week_data.get('use_global_office_hours_settings')
+                    )
+                else:
+                    result = None
+            else:
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect('tasks.db')
+                c = conn.cursor()
+                
+                c.execute("""
+                    SELECT week_start_day, week_start_hour, week_end_day, week_end_hour, 
+                           is_custom_duration, week_specific_bonus_payrate, 
+                           week_specific_bonus_start_day, week_specific_bonus_start_time,
+                           week_specific_bonus_end_day, week_specific_bonus_end_time,
+                           week_specific_enable_task_bonus, week_specific_bonus_task_threshold,
+                           week_specific_bonus_additional_amount, use_global_bonus_settings,
+                           office_hour_count, office_hour_payrate, office_hour_session_duration_minutes, use_global_office_hours_settings
+                    FROM weeks WHERE week_label = ?
+                """, (self.week_combo.currentText(),))
+                
+                result = c.fetchone()
+                conn.close()
             
             if result:
                 # Duration settings
@@ -300,7 +353,7 @@ class WeekCustomizationPage(BasePage):
                 self.toggle_week_bonus_controls(self.use_global_bonus_cb.isChecked())
                 self.toggle_week_office_hours_controls(self.use_global_office_hours_cb.isChecked())
                 
-        except Exception as e:
+        except (DataServiceError, Exception) as e:
             print(f"Error loading week settings: {e}")
             
     def save_settings(self):
@@ -315,10 +368,7 @@ class WeekCustomizationPage(BasePage):
             return False
 
     def revert_to_global_defaults(self):
-        """Revert the selected week's settings to global defaults in the database.
-        This means setting is_custom_duration, is_bonus_week, and use_global_bonus_settings to False/True
-        and clearing week-specific bonus/duration/office hour data.
-        """
+        """Revert the selected week's settings to global defaults using Data Service Layer"""
         current_week_label = self.week_combo.currentText()
         if not current_week_label:
             QtWidgets.QMessageBox.warning(self, "No Week Selected", "Please select a week to revert settings for.")
@@ -330,117 +380,195 @@ class WeekCustomizationPage(BasePage):
         if reply == QtWidgets.QMessageBox.No:
             return
 
-        conn = None
         try:
-            conn = sqlite3.connect('tasks.db')
-            c = conn.cursor()
+            # Use Data Service Layer for week settings reset
+            if self.week_dao:
+                # Get the week ID first
+                week_data = self.week_dao.get_week_by_label(current_week_label)
+                if week_data:
+                    week_id = week_data['id']
+                    
+                    # Update week settings to global defaults
+                    update_data = {
+                        'week_start_day': None,
+                        'week_start_hour': None,
+                        'week_end_day': None,
+                        'week_end_hour': None,
+                        'is_custom_duration': False,
+                        'is_bonus_week': False,
+                        'week_specific_bonus_payrate': None,
+                        'week_specific_bonus_start_day': None,
+                        'week_specific_bonus_start_time': None,
+                        'week_specific_bonus_end_day': None,
+                        'week_specific_bonus_end_time': None,
+                        'week_specific_enable_task_bonus': False,
+                        'week_specific_bonus_task_threshold': None,
+                        'week_specific_bonus_additional_amount': None,
+                        'use_global_bonus_settings': True,
+                        'office_hour_count': None,
+                        'office_hour_payrate': None,
+                        'office_hour_session_duration_minutes': None,
+                        'use_global_office_hours_settings': True
+                    }
+                    
+                    success = self.week_dao.update_week(week_id, **update_data)
+                    if success:
+                        QtWidgets.QMessageBox.information(self, "Reverted", f"Custom settings for '{current_week_label}' reverted to global defaults.")
+                    else:
+                        QtWidgets.QMessageBox.critical(self, "Error", "Failed to revert settings.")
+                else:
+                    QtWidgets.QMessageBox.critical(self, "Error", f"Week '{current_week_label}' not found.")
+            else:
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect('tasks.db')
+                c = conn.cursor()
 
-            # Update the weeks table to reflect global defaults for duration, bonus, and office hours
-            c.execute("""
-                UPDATE weeks SET
-                    week_start_day = NULL,
-                    week_start_hour = NULL,
-                    week_end_day = NULL,
-                    week_end_hour = NULL,
-                    is_custom_duration = FALSE,
-                    is_bonus_week = FALSE,
-                    week_specific_bonus_payrate = NULL,
-                    week_specific_bonus_start_day = NULL,
-                    week_specific_bonus_start_time = NULL,
-                    week_specific_bonus_end_day = NULL,
-                    week_specific_bonus_end_time = NULL,
-                    week_specific_enable_task_bonus = FALSE,
-                    week_specific_bonus_task_threshold = NULL,
-                    week_specific_bonus_additional_amount = NULL,
-                    use_global_bonus_settings = TRUE,
-                    office_hour_count = NULL,
-                    office_hour_payrate = NULL,
-                    office_hour_session_duration_minutes = NULL,
-                    use_global_office_hours_settings = TRUE
-                WHERE week_label = ?
-            """, (current_week_label,))
-            
-            conn.commit()
-            QtWidgets.QMessageBox.information(self, "Reverted", f"Custom settings for '{current_week_label}' reverted to global defaults.")
+                # Update the weeks table to reflect global defaults for duration, bonus, and office hours
+                c.execute("""
+                    UPDATE weeks SET
+                        week_start_day = NULL,
+                        week_start_hour = NULL,
+                        week_end_day = NULL,
+                        week_end_hour = NULL,
+                        is_custom_duration = FALSE,
+                        is_bonus_week = FALSE,
+                        week_specific_bonus_payrate = NULL,
+                        week_specific_bonus_start_day = NULL,
+                        week_specific_bonus_start_time = NULL,
+                        week_specific_bonus_end_day = NULL,
+                        week_specific_bonus_end_time = NULL,
+                        week_specific_enable_task_bonus = FALSE,
+                        week_specific_bonus_task_threshold = NULL,
+                        week_specific_bonus_additional_amount = NULL,
+                        use_global_bonus_settings = TRUE,
+                        office_hour_count = NULL,
+                        office_hour_payrate = NULL,
+                        office_hour_session_duration_minutes = NULL,
+                        use_global_office_hours_settings = TRUE
+                    WHERE week_label = ?
+                """, (current_week_label,))
+                
+                conn.commit()
+                conn.close()
+                QtWidgets.QMessageBox.information(self, "Reverted", f"Custom settings for '{current_week_label}' reverted to global defaults.")
             
             # Reload settings to update UI
             self.load_week_settings()
 
             # Notify analysis widget to refresh (assuming it can handle a signal or a direct call)
-            # This would ideally be a signal, but for direct interaction, we might need a reference.
-            # For now, print a message and rely on manual refresh or dialog close/reopen.
             if hasattr(self.parent(), 'refresh_analysis_widget'):
-                self.parent().refresh_analysis_widget() # Assuming the OptionsDialog has this method
+                self.parent().refresh_analysis_widget()
 
-        except sqlite3.Error as e:
+        except (DataServiceError, sqlite3.Error) as e:
             QtWidgets.QMessageBox.critical(self, "Database Error", f"Failed to revert settings: {e}")
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"An unexpected error occurred: {e}")
-        finally:
-            if conn:
-                conn.close()
 
     def save_week_settings(self):
-        """Save settings for the selected week to the database"""
+        """Save settings for the selected week to the database using Data Service Layer"""
         if not self.week_combo.currentText():
             return
             
         try:
-            conn = sqlite3.connect('tasks.db')
-            c = conn.cursor()
+            week_label = self.week_combo.currentText()
             
             # Prepare values
-            week_label = self.week_combo.currentText()
-            is_custom_duration = 1 if self.custom_duration_cb.isChecked() else 0
+            is_custom_duration = self.custom_duration_cb.isChecked()
             week_start_day = self.week_start_day_combo.currentIndex() + 1  # Convert to 1-based
             week_start_hour = int(self.week_start_hour_spin.value())
             week_end_day = self.week_end_day_combo.currentIndex() + 1  # Convert to 1-based
             week_end_hour = int(self.week_end_hour_spin.value())
             
-            use_global_bonus = 1 if self.use_global_bonus_cb.isChecked() else 0
+            use_global_bonus = self.use_global_bonus_cb.isChecked()
             
             # Week-specific bonus values (NULL if using global)
             if use_global_bonus:
-                bonus_values = [None] * 8  # All NULL
+                bonus_values = {
+                    'week_specific_bonus_payrate': None,
+                    'week_specific_bonus_start_day': None,
+                    'week_specific_bonus_start_time': None,
+                    'week_specific_bonus_end_day': None,
+                    'week_specific_bonus_end_time': None,
+                    'week_specific_enable_task_bonus': None,
+                    'week_specific_bonus_task_threshold': None,
+                    'week_specific_bonus_additional_amount': None
+                }
             else:
-                bonus_values = [
-                    self.week_bonus_payrate_spin.value(),
-                    self.week_bonus_start_day_combo.currentIndex(),
-                    self.week_bonus_start_time_edit.time().toString("HH:mm"),
-                    self.week_bonus_end_day_combo.currentIndex(),
-                    self.week_bonus_end_time_edit.time().toString("HH:mm"),
-                    1 if self.week_enable_task_bonus_cb.isChecked() else 0,
-                    int(self.week_task_threshold_spin.value()),
-                    self.week_additional_bonus_spin.value()
-                ]
+                bonus_values = {
+                    'week_specific_bonus_payrate': self.week_bonus_payrate_spin.value(),
+                    'week_specific_bonus_start_day': self.week_bonus_start_day_combo.currentIndex(),
+                    'week_specific_bonus_start_time': self.week_bonus_start_time_edit.time().toString("HH:mm"),
+                    'week_specific_bonus_end_day': self.week_bonus_end_day_combo.currentIndex(),
+                    'week_specific_bonus_end_time': self.week_bonus_end_time_edit.time().toString("HH:mm"),
+                    'week_specific_enable_task_bonus': self.week_enable_task_bonus_cb.isChecked(),
+                    'week_specific_bonus_task_threshold': int(self.week_task_threshold_spin.value()),
+                    'week_specific_bonus_additional_amount': self.week_additional_bonus_spin.value()
+                }
             
-            use_global_office_hours = 1 if self.use_global_office_hours_cb.isChecked() else 0
+            use_global_office_hours = self.use_global_office_hours_cb.isChecked()
 
             # Week-specific office hours values (NULL if using global)
             if use_global_office_hours:
-                office_hours_values = [None] * 2 # All NULL
+                office_hours_values = {
+                    'office_hour_payrate': None,
+                    'office_hour_session_duration_minutes': None
+                }
             else:
-                office_hours_values = [
-                    self.week_office_hour_payrate_spin.value(),
-                    self.week_office_hour_session_duration_spin.value()
-                ]
+                office_hours_values = {
+                    'office_hour_payrate': self.week_office_hour_payrate_spin.value(),
+                    'office_hour_session_duration_minutes': self.week_office_hour_session_duration_spin.value()
+                }
 
-            c.execute("""
-                UPDATE weeks SET 
-                    week_start_day = ?, week_start_hour = ?, week_end_day = ?, week_end_hour = ?,
-                    is_custom_duration = ?, week_specific_bonus_payrate = ?,
-                    week_specific_bonus_start_day = ?, week_specific_bonus_start_time = ?,
-                    week_specific_bonus_end_day = ?, week_specific_bonus_end_time = ?,
-                    week_specific_enable_task_bonus = ?, week_specific_bonus_task_threshold = ?,
-                    week_specific_bonus_additional_amount = ?, use_global_bonus_settings = ?,
-                    office_hour_payrate = ?, office_hour_session_duration_minutes = ?, use_global_office_hours_settings = ?
-                WHERE week_label = ?
-            """, (week_start_day, week_start_hour, week_end_day, week_end_hour, is_custom_duration,
-                  *bonus_values, use_global_bonus, *office_hours_values, use_global_office_hours, week_label))
+            # Use Data Service Layer for week settings update
+            if self.week_dao:
+                # Get the week ID first
+                week_data = self.week_dao.get_week_by_label(week_label)
+                if week_data:
+                    week_id = week_data['id']
+                    
+                    # Prepare update data
+                    update_data = {
+                        'week_start_day': week_start_day,
+                        'week_start_hour': week_start_hour,
+                        'week_end_day': week_end_day,
+                        'week_end_hour': week_end_hour,
+                        'is_custom_duration': is_custom_duration,
+                        'use_global_bonus_settings': use_global_bonus,
+                        'use_global_office_hours_settings': use_global_office_hours,
+                        **bonus_values,
+                        **office_hours_values
+                    }
+                    
+                    success = self.week_dao.update_week(week_id, **update_data)
+                    if not success:
+                        raise DataServiceError("Failed to update week settings")
+                else:
+                    raise DataServiceError(f"Week '{week_label}' not found")
+            else:
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect('tasks.db')
+                c = conn.cursor()
+                
+                # Convert bonus and office hours values back to list format for SQL
+                bonus_list = list(bonus_values.values())
+                office_hours_list = list(office_hours_values.values())
+                
+                c.execute("""
+                    UPDATE weeks SET 
+                        week_start_day = ?, week_start_hour = ?, week_end_day = ?, week_end_hour = ?,
+                        is_custom_duration = ?, week_specific_bonus_payrate = ?,
+                        week_specific_bonus_start_day = ?, week_specific_bonus_start_time = ?,
+                        week_specific_bonus_end_day = ?, week_specific_bonus_end_time = ?,
+                        week_specific_enable_task_bonus = ?, week_specific_bonus_task_threshold = ?,
+                        week_specific_bonus_additional_amount = ?, use_global_bonus_settings = ?,
+                        office_hour_payrate = ?, office_hour_session_duration_minutes = ?, use_global_office_hours_settings = ?
+                    WHERE week_label = ?
+                """, (week_start_day, week_start_hour, week_end_day, week_end_hour, is_custom_duration,
+                      *bonus_list, use_global_bonus, *office_hours_list, use_global_office_hours, week_label))
+                
+                conn.commit()
+                conn.close()
             
-            conn.commit()
-            conn.close()
-            
-        except Exception as e:
+        except (DataServiceError, Exception) as e:
             print(f"Error saving week settings: {e}")
             raise 

@@ -195,6 +195,97 @@ class ChartValidationEngine:
                         ["Consider filtering data", "Group smaller categories", "Use horizontal bars for many categories"]
                     ))
         
+        elif chart_type == "Box Plot":
+            # Box plot specific validations
+            if len(y_variables) != 1:
+                issues.append(ValidationIssue(
+                    ValidationIssue.Severity.ERROR,
+                    "Box plots require exactly one Y variable.",
+                    ["Select only one Y variable", "Box plots show distribution of a single variable"]
+                ))
+            
+            if x_var_type != "categorical":
+                issues.append(ValidationIssue(
+                    ValidationIssue.Severity.ERROR,
+                    "Box plots require a categorical X variable.",
+                    ["Select a categorical variable (like Projects, Claim Time Ranges) for X-axis", "Use Scatter Plot for quantitative X variables"]
+                ))
+            
+            # Check for minimum data points
+            if len(data) < 5:
+                issues.append(ValidationIssue(
+                    ValidationIssue.Severity.ERROR,
+                    f"Box plots require at least 5 data points (current: {len(data)}).",
+                    ["Collect more data points", "Use a different chart type for small datasets"]
+                ))
+            
+            # Check for too many categories in box plot
+            if data and x_var_type == "categorical":
+                unique_categories = len(set(row[0] for row in data))
+                if unique_categories > 20:
+                    issues.append(ValidationIssue(
+                        ValidationIssue.Severity.WARNING,
+                        f"Box plot with {unique_categories} categories may be overcrowded.",
+                        ["Consider filtering data to fewer categories", "Group similar categories together"]
+                    ))
+                elif unique_categories == 1:
+                    issues.append(ValidationIssue(
+                        ValidationIssue.Severity.INFO,
+                        "Box plot will show distribution for a single category.",
+                        ["This will show statistical distribution of the Y variable", "Consider adding more categories for comparison"]
+                    ))
+        
+        elif chart_type == "heatmap":
+            # Heatmap specific validation
+            issues.extend(self._validate_heatmap_requirements(y_variables, len(data), self.get_chart_type_requirements(chart_type)))
+        
+        return issues
+    
+    def _validate_heatmap_requirements(self, y_variables: List[str], data_points: int, 
+                                     chart_config: Dict) -> List[ValidationIssue]:
+        """Validate heatmap-specific requirements"""
+        issues = []
+        
+        # Check minimum Y variables for correlation matrix
+        min_y_vars = chart_config.get("min_y_variables", 2)
+        if len(y_variables) < min_y_vars:
+            issues.append(ValidationIssue(
+                ValidationIssue.Severity.ERROR,
+                f"Heatmap requires at least {min_y_vars} numerical variables for correlation analysis (currently {len(y_variables)} selected).",
+                [f"Please select at least {min_y_vars} numerical variables from the Y Variables list",
+                 "Heatmaps show correlations between multiple variables",
+                 "Try selecting variables like Duration, Earnings, Rating for correlation analysis"]
+            ))
+        
+        # Check maximum Y variables (for readability)
+        max_y_vars = chart_config.get("max_y_variables", 10)
+        if len(y_variables) > max_y_vars:
+            issues.append(ValidationIssue(
+                ValidationIssue.Severity.WARNING,
+                f"Heatmap with {len(y_variables)} variables may be difficult to read.",
+                [f"Consider limiting to {max_y_vars} variables for better visualization",
+                 "Too many variables make the correlation matrix hard to interpret"]
+            ))
+        
+        # Check minimum data points for meaningful correlation
+        min_points = chart_config.get("min_data_points", 10)
+        if data_points < min_points:
+            issues.append(ValidationIssue(
+                ValidationIssue.Severity.ERROR,
+                f"Heatmap requires at least {min_points} data points for meaningful correlation analysis (currently {data_points} available).",
+                ["Try selecting a larger time period or different data selection",
+                 "Correlation analysis needs sufficient data to be meaningful"]
+            ))
+        
+        # Warning for optimal sample size
+        if data_points < 30:
+            issues.append(ValidationIssue(
+                ValidationIssue.Severity.WARNING,
+                f"Correlation analysis with {data_points} data points may not be very reliable.",
+                ["Consider using at least 30 data points for more reliable correlation estimates",
+                 "Small sample sizes can lead to misleading correlations"]
+            ))
+        
         return issues
     
     def _validate_performance_considerations(self, data: List[Tuple], x_variable: Tuple[str, str],
@@ -274,6 +365,19 @@ class ChartValidationEngine:
                 "max_y_variables": 1,
                 "preferred_x_type": "quantitative",
                 "description": "Shows relationships between two quantitative variables"
+            },
+            "Box Plot": {
+                "max_y_variables": 1,
+                "required_x_type": "categorical",
+                "min_data_points": 5,
+                "max_categories": 20,
+                "description": "Distribution analysis with quartiles, outliers, and statistical summary"
+            },
+            "heatmap": {
+                "min_y_variables": 2,
+                "max_y_variables": 10,
+                "min_data_points": 10,
+                "description": "Visualizes correlation between variables"
             }
         }
         return requirements.get(chart_type, {}) 

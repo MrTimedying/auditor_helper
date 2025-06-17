@@ -85,15 +85,62 @@ ALLOWED_X_VARIABLES = {
 
 # Allowed Chart Types and their compatibility
 ALLOWED_CHART_TYPES = {
-    'line': {
-        'display_name': 'Line Chart',
-        'description': 'Primarily for time-series data',
-        'compatible_x_variables': ['time_day', 'time_week', 'time_month']
+    "line": {
+        "display_name": "Line Chart",
+        "description": "Shows trends over time or ordered categories",
+        "compatible_x_types": ["temporal", "ordinal", "quantitative"],
+        "compatible_y_types": ["quantitative"],
+        "min_data_points": 2,
+        "max_y_variables": 5,
+        "requirements": ["Single Y variable recommended for clarity"]
     },
-    'bar': {
-        'display_name': 'Bar Chart',
-        'description': 'Suitable for categorical variables and discrete periods',
-        'compatible_x_variables': ['time_day', 'time_week', 'time_month', 'projects', 'claim_time_ranges']
+    "bar": {
+        "display_name": "Bar Chart", 
+        "description": "Compares values across categories",
+        "compatible_x_types": ["categorical", "temporal"],
+        "compatible_y_types": ["quantitative"],
+        "min_data_points": 1,
+        "max_y_variables": 3,
+        "requirements": ["Categorical X variable works best"]
+    },
+    "scatter": {
+        "display_name": "Scatter Plot",
+        "description": "Shows relationship between two quantitative variables",
+        "compatible_x_types": ["quantitative"],
+        "compatible_y_types": ["quantitative"],
+        "min_data_points": 3,
+        "max_y_variables": 1,
+        "requirements": ["Both X and Y must be quantitative"]
+    },
+    "pie": {
+        "display_name": "Pie Chart",
+        "description": "Shows parts of a whole for categorical data",
+        "compatible_x_types": ["categorical"],
+        "compatible_y_types": ["quantitative"],
+        "min_data_points": 2,
+        "max_y_variables": 1,
+        "max_categories": 8,
+        "requirements": ["Exactly one Y variable", "Limited categories for readability"]
+    },
+    "box_plot": {
+        "display_name": "Box Plot",
+        "description": "Shows distribution with quartiles and outliers",
+        "compatible_x_types": ["categorical"],
+        "compatible_y_types": ["quantitative"],
+        "min_data_points": 5,
+        "max_y_variables": 1,
+        "max_categories": 20,
+        "requirements": ["Minimum 5 data points per category", "Single quantitative Y variable"]
+    },
+    "heatmap": {
+        "display_name": "Heatmap",
+        "description": "Shows correlation matrix between multiple variables",
+        "compatible_x_types": [],  # No X variable needed
+        "compatible_y_types": ["quantitative"],
+        "min_data_points": 10,
+        "min_y_variables": 2,
+        "max_y_variables": 10,
+        "requirements": ["Multiple quantitative variables", "Minimum 10 data points", "No X variable selection needed"]
     }
 }
 
@@ -120,9 +167,30 @@ def get_allowed_chart_types():
 def get_compatible_chart_types(x_variable):
     """Get chart types compatible with the given X variable"""
     compatible_types = []
+    
+    # Get X variable type from ALLOWED_X_VARIABLES
+    if x_variable not in ALLOWED_X_VARIABLES:
+        return compatible_types
+    
+    x_variable_info = ALLOWED_X_VARIABLES[x_variable]
+    x_data_type = x_variable_info['data_type']
+    
+    # Map data types to compatibility types
+    type_mapping = {
+        'date': 'temporal',
+        'categorical': 'categorical',
+        'integer': 'quantitative',
+        'float': 'quantitative'
+    }
+    
+    x_type = type_mapping.get(x_data_type, 'categorical')
+    
+    # Find compatible chart types
     for chart_type, config in ALLOWED_CHART_TYPES.items():
-        if x_variable in config['compatible_x_variables']:
+        compatible_x_types = config.get('compatible_x_types', [])
+        if x_type in compatible_x_types or len(compatible_x_types) == 0:  # Heatmap has no X requirement
             compatible_types.append(chart_type)
+    
     return compatible_types
 
 def validate_variable_combination(x_variable, y_variable, chart_type):

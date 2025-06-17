@@ -15,9 +15,15 @@ if __name__ == "__main__":
     icons_dir = os.path.join(project_root, 'icons')
     helper_icon_path = os.path.join(icons_dir, 'helper_icon.ico')
 
+    # Set environment variable to force Qt style before creating QApplication
+    os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
+
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("")  # Set empty application display name
     app.setWindowIcon(QtGui.QIcon(helper_icon_path))
+    
+    # Set Qt style to Material to enable ScrollBar customization
+    app.setStyle("Material")
     
     # Check for first startup and show wizard if needed
     from .core.settings.global_settings import global_settings

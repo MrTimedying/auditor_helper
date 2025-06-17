@@ -1,7 +1,8 @@
 import sqlite3
 import os
+from .database_config import DATABASE_FILE, ensure_database_directory, detect_and_migrate_legacy_databases
 
-DB_FILE = "tasks.db"
+DB_FILE = DATABASE_FILE
 
 def backup_db():
     """Create a backup of the existing database if it exists"""
@@ -128,6 +129,69 @@ def migrate_time_columns():
             print("Added time_end column successfully")
         except Exception as e:
             print(f"Error adding time_end column: {e}")
+    
+    conn.commit()
+    conn.close()
+
+def migrate_tasks_table_columns():
+    """Add missing columns to tasks table for legacy database compatibility"""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    
+    # Check if the columns exist
+    c.execute("PRAGMA table_info(tasks)")
+    columns = [column[1] for column in c.fetchall()]
+    
+    # Define all columns that should exist in the modern tasks table
+    required_columns = {
+        "feedback": "TEXT",
+        "bonus_paid": "INTEGER DEFAULT 0",
+        "audited_timestamp": "DATETIME"
+    }
+    
+    for column_name, column_def in required_columns.items():
+        if column_name not in columns:
+            print(f"Adding {column_name} column to tasks table...")
+            try:
+                c.execute(f"ALTER TABLE tasks ADD COLUMN {column_name} {column_def}")
+                print(f"Added {column_name} column successfully")
+            except Exception as e:
+                print(f"Error adding {column_name} column: {e}")
+    
+    # Also ensure score column is INTEGER (legacy might have REAL)
+    if "score" in columns:
+        # Check current type
+        c.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'")
+        table_sql = c.fetchone()[0]
+        if "score REAL" in table_sql:
+            print("Note: score column is REAL type (legacy), but application expects INTEGER")
+    
+    conn.commit()
+    conn.close()
+
+def migrate_feedback_files_table():
+    """Create feedback_files table if it doesn't exist"""
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    
+    # Check if table exists
+    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='feedback_files'")
+    table_exists = c.fetchone() is not None
+    
+    if not table_exists:
+        print("Creating feedback_files table...")
+        try:
+            c.execute(
+                """CREATE TABLE feedback_files (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    content TEXT,
+                    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+                )"""
+            )
+            print("Created feedback_files table successfully")
+        except Exception as e:
+            print(f"Error creating feedback_files table: {e}")
     
     conn.commit()
     conn.close()
@@ -324,9 +388,20 @@ def set_app_setting(setting_key, setting_value, setting_type='string'):
 
 def run_all_migrations():
     """Run all database migrations in the correct order"""
-    # Backup functionality removed - backups are only created manually or before major operations
+    # Ensure database directory exists
+    ensure_database_directory()
+    
+    # Check for and handle legacy databases
+    print("Checking for legacy databases...")
+    migration_messages = detect_and_migrate_legacy_databases(auto_migrate=True)
+    for message in migration_messages:
+        print(f"Legacy DB: {message}")
+    
+    # Run all migrations in order
     init_db()
     migrate_time_columns()
+    migrate_tasks_table_columns()
+    migrate_feedback_files_table()
     migrate_week_settings()
     migrate_week_bonus_settings()
     migrate_app_settings_table()

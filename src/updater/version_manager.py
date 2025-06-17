@@ -7,17 +7,37 @@ Handles version detection, parsing, and comparison logic.
 import re
 from typing import Optional, Tuple
 from packaging import version
+from pathlib import Path
 
 
 class VersionManager:
     """Manages version detection and comparison for the application."""
     
-    # Current app version - this should be updated with each release
-    CURRENT_VERSION = "0.16.8-beta"
-    
     def __init__(self):
-        self.current_version = self.CURRENT_VERSION
+        self.current_version = self._get_current_app_version()
     
+    def _get_current_app_version(self) -> str:
+        """Extract the current application version from CHANGELOG.md."""
+        changelog_file = Path(__file__).resolve().parents[2] / "docs" / "CHANGELOG.md"
+        if not changelog_file.exists():
+            print("⚠️ CHANGELOG.md not found. Defaulting app version to 1.0.0")
+            return "1.0.0"
+
+        try:
+            with open(changelog_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                # Iterate forward to find the first (latest) version
+                for line in lines:
+                    if line.startswith("## v"):
+                        # Extract version using regex: ## vX.Y.Z-beta (Title)
+                        match = re.match(r"## (v\d+\.\d+\.\d+(?:-[a-zA-Z0-9]+)*)", line)
+                        if match:
+                            return match.group(1)
+            print("⚠️ No version found in CHANGELOG.md. Defaulting app version to 1.0.0")
+        except Exception as e:
+            print(f"⚠️ Could not read app version from CHANGELOG.md: {e}")
+        return "1.0.0"
+
     def get_current_version(self) -> str:
         """Get the current application version."""
         return self.current_version

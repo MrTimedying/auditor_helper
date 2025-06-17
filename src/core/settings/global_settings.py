@@ -31,46 +31,11 @@ def get_icon_path(icon_filename):
 
 # Settings file in consistent location
 def get_settings_file_path():
-    """Get the correct path for settings file - always in app data directory"""
+    """Get the correct path for settings file - in root directory"""
     app_data_dir = get_app_data_dir()
     return os.path.join(app_data_dir, 'global_settings.json')
 
-def migrate_existing_settings():
-    """Migrate settings from old locations to new unified location"""
-    new_path = get_settings_file_path()
-    
-    # If new location already exists, no migration needed
-    if os.path.exists(new_path):
-        return new_path
-    
-    # List of old possible locations to check
-    old_locations = [
-        # Old development location (next to this file)
-        str(pathlib.Path(__file__).resolve().with_name('global_settings.json')),
-        # Old src root location
-        os.path.join(get_app_data_dir(), 'src', 'global_settings.json'),
-        # Very old location in src root
-        os.path.join(get_app_data_dir(), 'src', 'core', 'settings', 'global_settings.json')
-    ]
-    
-    # Try to find and migrate from the most recent settings file
-    for old_path in old_locations:
-        if os.path.exists(old_path):
-            try:
-                print(f"Migrating settings from {old_path} to {new_path}")
-                # Ensure target directory exists
-                os.makedirs(os.path.dirname(new_path), exist_ok=True)
-                # Copy the file
-                shutil.copy2(old_path, new_path)
-                print(f"✓ Settings migrated successfully")
-                return new_path
-            except Exception as e:
-                print(f"⚠️ Failed to migrate settings from {old_path}: {e}")
-                continue
-    
-    return new_path
-
-SETTINGS_FILE = migrate_existing_settings()
+SETTINGS_FILE = get_settings_file_path()
 
 # =============================================================================
 # DEFAULT APPLICATION SETTINGS
@@ -121,7 +86,8 @@ DEFAULT_GLOBAL_SETTINGS = {
     "ui_settings": {
         "show_week_boundary_warnings": True,
         "auto_suggest_new_week": True,
-        "default_payrate": 25.3
+        "default_payrate": 25.3,
+        "auto_edit_new_tasks": False
     }
 }
 
@@ -315,6 +281,10 @@ class GlobalSettingsManager:
             "payrate": self.get_setting("office_hours_settings.default_office_hour_payrate", 20.0),
             "session_duration_minutes": self.get_setting("office_hours_settings.default_office_hour_session_duration_minutes", 60)
         }
+    
+    def should_auto_edit_new_tasks(self) -> bool:
+        """Check if new tasks should automatically open the edit dialog"""
+        return self.get_setting("ui_settings.auto_edit_new_tasks", False)
 
 # Global instance
 global_settings = GlobalSettingsManager() 

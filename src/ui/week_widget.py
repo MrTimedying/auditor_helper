@@ -6,6 +6,13 @@ from datetime import datetime
 from PySide6 import QtCore, QtWidgets
 from core.settings.global_settings import global_settings
 
+# Data Service Layer imports
+from core.services.data_service import DataService, DataServiceError
+from core.services.week_dao import WeekDAO
+
+# Event Bus imports
+from core.events import get_event_bus, EventType
+
 DB_FILE = "tasks.db"
 
 def is_production():
@@ -17,6 +24,19 @@ class WeekWidget(QtWidgets.QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        
+        # Initialize Event Bus
+        self.event_bus = get_event_bus()
+        
+        # Initialize Data Service Layer
+        try:
+            self.data_service = DataService.get_instance()
+            self.week_dao = WeekDAO(self.data_service)
+        except DataServiceError as e:
+            print(f"Warning: Failed to initialize Data Service Layer: {e}")
+            # Fallback to direct SQLite if needed
+            self.data_service = None
+            self.week_dao = None
         
         # Layout
         layout = QtWidgets.QVBoxLayout(self)
@@ -67,7 +87,18 @@ class WeekWidget(QtWidgets.QWidget):
     def selection_changed(self):
         week_id, week_label = self.current_week_id()
         if week_id is not None:
+            # Emit traditional Qt signal for backward compatibility
             self.weekChanged.emit(week_id, week_label)
+            
+            # Emit event through event bus
+            self.event_bus.emit_event(
+                EventType.WEEK_CHANGED,
+                {
+                    'week_id': week_id,
+                    'week_label': week_label
+                },
+                'WeekWidget'
+            )
     
     def refresh_weeks(self):
         self.week_list.clear()
@@ -168,41 +199,80 @@ class WeekWidget(QtWidgets.QWidget):
         week_start_hour = global_defaults['week_start_hour']
         week_end_hour = global_defaults['week_end_hour']
         
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
         try:
-            c.execute("""
-                INSERT INTO weeks (
-                    week_label, 
-                    week_start_day, week_start_hour, 
-                    week_end_day, week_end_hour, 
-                    is_custom_duration
-                ) VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                week_label, 
-                week_start_day, week_start_hour,
-                week_end_day, week_end_hour,
-                True  # Mark as custom duration since we're setting specific days
-            ))
-            conn.commit()
-            
-            # Show success notification via main window toaster manager
-            if hasattr(self.main_window, 'toaster_manager'):
-                self.main_window.toaster_manager.show_info(f"Created new week: {week_label}", "Week Added", 3000)
-        except sqlite3.IntegrityError:
-            # Show warning notification via main window toaster manager
-            if hasattr(self.main_window, 'toaster_manager'):
-                self.main_window.toaster_manager.show_warning(
-                    f"A week with the label '{week_label}' already exists.", "Duplicate Week", 5000
+            # Use Data Service Layer for week creation
+            if self.week_dao:
+                week_data = {
+                    'week_label': week_label,
+                    'week_start_day': week_start_day,
+                    'week_start_hour': week_start_hour,
+                    'week_end_day': week_end_day,
+                    'week_end_hour': week_end_hour,
+                    'is_custom_duration': True  # Mark as custom duration since we're setting specific days
+                }
+                
+                new_week_id = self.week_dao.create_week(week_data)
+                
+                # Emit week created event
+                self.event_bus.emit_event(
+                    EventType.WEEK_CREATED,
+                    {
+                        'week_id': new_week_id,
+                        'week_label': week_label,
+                        'week_data': week_data
+                    },
+                    'WeekWidget'
                 )
+                
+                # Show success notification via main window toaster manager
+                if hasattr(self.main_window, 'toaster_manager'):
+                    self.main_window.toaster_manager.show_info(f"Created new week: {week_label}", "Week Added", 3000)
             else:
-                # Fallback to traditional dialog if toaster not available
-                QtWidgets.QMessageBox.warning(
-                    self, "Duplicate Week", 
-                    f"A week with the label '{week_label}' already exists."
-                )
-        finally:
-            conn.close()
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("""
+                    INSERT INTO weeks (
+                        week_label, 
+                        week_start_day, week_start_hour, 
+                        week_end_day, week_end_hour, 
+                        is_custom_duration
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    week_label, 
+                    week_start_day, week_start_hour,
+                    week_end_day, week_end_hour,
+                    True  # Mark as custom duration since we're setting specific days
+                ))
+                conn.commit()
+                conn.close()
+                
+                # Show success notification via main window toaster manager
+                if hasattr(self.main_window, 'toaster_manager'):
+                    self.main_window.toaster_manager.show_info(f"Created new week: {week_label}", "Week Added", 3000)
+                    
+        except (DataServiceError, sqlite3.IntegrityError) as e:
+            # Handle duplicate week error
+            error_msg = str(e).lower()
+            if 'unique' in error_msg or 'duplicate' in error_msg or 'integrity' in error_msg:
+                # Show warning notification via main window toaster manager
+                if hasattr(self.main_window, 'toaster_manager'):
+                    self.main_window.toaster_manager.show_warning(
+                        f"A week with the label '{week_label}' already exists.", "Duplicate Week", 5000
+                    )
+                else:
+                    # Fallback to traditional dialog if toaster not available
+                    QtWidgets.QMessageBox.warning(
+                        self, "Duplicate Week", 
+                        f"A week with the label '{week_label}' already exists."
+                    )
+            else:
+                # Handle other database errors
+                print(f"Error creating week: {e}")
+                if hasattr(self.main_window, 'toaster_manager'):
+                    self.main_window.toaster_manager.show_error(
+                        f"Failed to create week: {e}", "Database Error", 5000
+                    )
         
         self.refresh_weeks()
         for i in range(self.week_list.count()):
@@ -211,7 +281,7 @@ class WeekWidget(QtWidgets.QWidget):
                 break
         
         # Refresh the analysis widget's week combo to mirror the changes
-        if hasattr(self.main_window, 'analysis_widget'):
+        if hasattr(self.main_window, 'analysis_widget') and self.main_window.analysis_widget is not None:
             self.main_window.analysis_widget.refresh_week_combo()
     
     def delete_week(self):
@@ -251,34 +321,81 @@ class WeekWidget(QtWidgets.QWidget):
         # Create a backup before deleting (only in production)
         self.create_db_backup()
         
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute("DELETE FROM weeks WHERE id=?", (week_id,))
-        conn.commit()
-        conn.close()
-        
-        # Show deletion notification via main window toaster manager
-        if hasattr(self.main_window, 'toaster_manager'):
-            self.main_window.toaster_manager.show_info(
-                f"Week '{week_label}' deleted", "Week Deleted", 3000
+        try:
+            # Use Data Service Layer for week deletion
+            if self.week_dao:
+                self.week_dao.delete_week(week_id)
+            else:
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("DELETE FROM weeks WHERE id=?", (week_id,))
+                conn.commit()
+                conn.close()
+            
+            # Emit week deleted event
+            self.event_bus.emit_event(
+                EventType.WEEK_DELETED,
+                {
+                    'week_id': week_id,
+                    'week_label': week_label
+                },
+                'WeekWidget'
             )
+            
+            # Show deletion notification via main window toaster manager
+            if hasattr(self.main_window, 'toaster_manager'):
+                self.main_window.toaster_manager.show_info(
+                    f"Week '{week_label}' deleted", "Week Deleted", 3000
+                )
+                
+        except DataServiceError as e:
+            print(f"Error deleting week: {e}")
+            if hasattr(self.main_window, 'toaster_manager'):
+                self.main_window.toaster_manager.show_error(
+                    f"Failed to delete week: {e}", "Database Error", 5000
+                )
+            return
         
         self.refresh_weeks()
         if self.week_list.count() > 0:
             self.week_list.setCurrentRow(0)
         else:
+            # Emit traditional Qt signal for backward compatibility
             self.weekChanged.emit(None, None)
+            
+            # Emit event through event bus
+            self.event_bus.emit_event(
+                EventType.WEEK_CHANGED,
+                {
+                    'week_id': None,
+                    'week_label': None
+                },
+                'WeekWidget'
+            )
         
         # Refresh the analysis widget's week combo to mirror the changes
-        if hasattr(self.main_window, 'analysis_widget'):
+        if hasattr(self.main_window, 'analysis_widget') and self.main_window.analysis_widget is not None:
             self.main_window.analysis_widget.refresh_week_combo()
     
     def get_weeks(self):
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute("SELECT id, week_label FROM weeks")
-        weeks = c.fetchall()
-        conn.close()
+        try:
+            # Use Data Service Layer for week retrieval
+            if self.week_dao:
+                weeks_data = self.week_dao.get_all_weeks()
+                # Convert to tuple format for compatibility with existing logic
+                weeks = [(week['id'], week['week_label']) for week in weeks_data]
+            else:
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT id, week_label FROM weeks")
+                weeks = c.fetchall()
+                conn.close()
+        except DataServiceError as e:
+            print(f"Error retrieving weeks: {e}")
+            # Return empty list on error
+            weeks = []
         
         # Sort weeks chronologically by parsing the start date from week_label
         def parse_start_date(week_tuple):

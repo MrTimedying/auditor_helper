@@ -1,0 +1,7 @@
+Phase 2 Performance Test Results
+========================================
+Test runs: 3
+Startup times: [0.20615077018737793, 0.20290660858154297, 0.20322895050048828]
+Average: 0.20s
+Best: 0.20s
+Worst: 0.21s

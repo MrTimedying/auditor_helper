@@ -1,12 +1,33 @@
 import os
 import sqlite3
-import pandas as pd
+# Lazy import for pandas - deferred until first use
+from core.optimization.lazy_imports import get_lazy_manager
 from datetime import datetime
 import sys
 import re # For parsing CSV filename
 
 # Database file name
 DB_FILE = "tasks.db"
+
+class ImportManager:
+    """Import manager with lazy-loaded pandas for better startup performance"""
+    
+    def __init__(self):
+        self._lazy_manager = get_lazy_manager()
+        self._setup_lazy_imports()
+    
+    def _setup_lazy_imports(self):
+        """Setup lazy imports for heavy scientific libraries"""
+        # Register pandas for lazy loading
+        self._lazy_manager.register_module('pandas', 'pandas')
+    
+    @property
+    def pd(self):
+        """Lazy-loaded pandas module"""
+        return self._lazy_manager.get_module('pandas')
+
+# Global instance for easy access
+_import_manager = ImportManager()
 
 def get_db_connection():
     """Establishes and returns a database connection."""
@@ -86,12 +107,12 @@ def process_dataframe_for_insertion(df, week_id, week_label_for_reporting):
         if col in df.columns:
             try:
                 if col == "Score":
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    df[col] = df[col].apply(lambda x: _import_manager.pd.to_numeric(x, errors='coerce'))
                 if col in ["Duration", "Time Limit"]:
                     # Ensure time fields are strings and validate their format
                     df[col] = df[col].astype(str)
                 if col == "Date Audited":
-                    df[col] = df[col].apply(lambda x: str(x).strip() if pd.notna(x) and str(x).strip() else None)
+                    df[col] = df[col].apply(lambda x: str(x).strip() if _import_manager.pd.notna(x) and str(x).strip() else None)
             except Exception as e:
                 print(f"Warning: Error coercing column '{col}' in '{week_label_for_reporting}': {e}")
 
@@ -114,7 +135,7 @@ def process_dataframe_for_insertion(df, week_id, week_label_for_reporting):
 
         for col_name in ["Attempt ID", "Duration", "Project ID", "Project Name",
                          "Operation ID", "Time Limit", "Date Audited", "Score", "Locale"]:
-            if pd.isna(row[col_name]) or (isinstance(row[col_name], str) and not row[col_name].strip()):
+            if _import_manager.pd.isna(row[col_name]) or (isinstance(row[col_name], str) and not row[col_name].strip()):
                 validation_errors_for_row.append(f"Missing or empty mandatory field: '{col_name}'")
                 is_valid = False
 
@@ -143,7 +164,7 @@ def process_dataframe_for_insertion(df, week_id, week_label_for_reporting):
         
         if is_valid:
             try:
-                date_audited_iso = str(pd.to_datetime(row['Date Audited']).date())
+                date_audited_iso = str(_import_manager.pd.to_datetime(row['Date Audited']).date())
             except Exception:
                 validation_errors_for_row.append(f"Could not parse 'Date Audited': {row['Date Audited']}")
                 is_valid = False
@@ -183,10 +204,10 @@ def import_tasks_from_excel(filename, conn):
     file_level_errors = []
 
     try:
-        excel_file = pd.ExcelFile(filename)
+        excel_file = _import_manager.pd.ExcelFile(filename)
         sheet_names = excel_file.sheet_names
 
-        existing_weeks_df = pd.read_sql_query("SELECT id, week_label FROM weeks", conn)
+        existing_weeks_df = _import_manager.pd.read_sql_query("SELECT id, week_label FROM weeks", conn)
         existing_weeks = dict(zip(existing_weeks_df['week_label'], existing_weeks_df['id']))
 
         for sheet_name in sheet_names:
@@ -267,7 +288,7 @@ def import_tasks_from_csv(filename, conn):
 
     print(f"Processing CSV with derived week label: '{week_label}'...")
     
-    existing_weeks_df = pd.read_sql_query("SELECT id, week_label FROM weeks", conn)
+    existing_weeks_df = _import_manager.pd.read_sql_query("SELECT id, week_label FROM weeks", conn)
     existing_weeks = dict(zip(existing_weeks_df['week_label'], existing_weeks_df['id']))
 
     week_id = existing_weeks.get(week_label)
@@ -281,7 +302,7 @@ def import_tasks_from_csv(filename, conn):
             return total_rows_read_file, total_rows_inserted_file, all_invalid_rows_info_file, file_level_errors
 
     try:
-        df = pd.read_csv(filename)
+        df = _import_manager.pd.read_csv(filename)
     except Exception as e:
         file_level_errors.append(f"Error reading CSV file '{filename}': {e}")
         return total_rows_read_file, total_rows_inserted_file, all_invalid_rows_info_file, file_level_errors

@@ -184,3 +184,13 @@ test_env/
 .venv_dev/
 .venv_test/
 
+# Database files - SECURITY: Never ship development databases
+*.db
+*.db-shm
+*.db-wal
+tasks.db*
+*.backup_*.db
+src/core/db/tasks.db*
+src/core/db/*.db
+src/core/db/*.backup*
+

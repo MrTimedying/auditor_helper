@@ -1,9 +1,17 @@
 import sqlite3
+import os
+import sys
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtMultimedia import QSoundEffect
 from datetime import datetime
-import os
 from analysis.timer_optimization import get_batched_updates, OptimizedTimerDisplay
+
+# Data Service Layer imports
+from core.services.data_service import DataService, DataServiceError
+from core.services.task_dao import TaskDAO
+
+# Event Bus imports
+from core.events import get_event_bus, EventType
 
 DB_FILE = "tasks.db"
 
@@ -19,6 +27,19 @@ class TimerDialog(QtWidgets.QDialog):
         self.parent_grid = parent
         self.main_window = parent.main_window if hasattr(parent, 'main_window') else None
         self.week_task_number = week_task_number
+        
+        # Initialize Event Bus
+        self.event_bus = get_event_bus()
+        
+        # Initialize Data Service Layer
+        try:
+            self.data_service = DataService.get_instance()
+            self.task_dao = TaskDAO(self.data_service)
+        except DataServiceError as e:
+            print(f"Warning: Failed to initialize Data Service Layer: {e}")
+            # Fallback to direct SQLite if needed
+            self.data_service = None
+            self.task_dao = None
         
         # Timer state
         self.timer = QtCore.QTimer()
@@ -154,16 +175,31 @@ class TimerDialog(QtWidgets.QDialog):
         layout.addWidget(instructions)
         
     def load_initial_duration(self):
-        """Load the current duration from the database"""
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute("SELECT duration, time_begin FROM tasks WHERE id=?", (self.task_id,))
-        result = c.fetchone()
-        conn.close()
-        
-        if result:
-            duration_str = result[0] or "00:00:00"
-            time_begin = result[1]
+        """Load the current duration from the database using Data Service Layer"""
+        try:
+            # Use Data Service Layer for task data retrieval
+            if self.task_dao:
+                task_data = self.task_dao.get_task_by_id(self.task_id)
+                if task_data:
+                    duration_str = task_data.get('duration') or "00:00:00"
+                    time_begin = task_data.get('time_begin')
+                else:
+                    duration_str = "00:00:00"
+                    time_begin = None
+            else:
+                # Fallback to direct SQLite if Data Service Layer not available
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT duration, time_begin FROM tasks WHERE id=?", (self.task_id,))
+                result = c.fetchone()
+                conn.close()
+                
+                if result:
+                    duration_str = result[0] or "00:00:00"
+                    time_begin = result[1]
+                else:
+                    duration_str = "00:00:00"
+                    time_begin = None
             
             # Parse duration
             try:
@@ -178,6 +214,13 @@ class TimerDialog(QtWidgets.QDialog):
             if time_begin and time_begin.strip():
                 self.is_first_start_for_task = False
                 
+            self.update_display()
+            
+        except DataServiceError as e:
+            print(f"Error loading initial duration: {e}")
+            # Set default values on error
+            self.total_seconds = 0
+            self.initial_duration_seconds = 0
             self.update_display()
     
     def on_time_limit_changed(self, task_id, new_time_limit_str):
@@ -251,6 +294,18 @@ class TimerDialog(QtWidgets.QDialog):
             self.timer.start()
             self.start_button.setEnabled(False)
             self.pause_button.setEnabled(True)
+            
+            # Emit timer started event
+            self.event_bus.emit_event(
+                EventType.TIMER_STARTED,
+                {
+                    'task_id': self.task_id,
+                    'current_seconds': self.total_seconds,
+                    'is_first_start': self.is_first_start_for_task,
+                    'start_timestamp': self.start_timestamp_for_new_task.isoformat() if self.start_timestamp_for_new_task else None
+                },
+                'TimerDialog'
+            )
     
     def pause_timer(self):
         """Pause the timer"""
@@ -259,6 +314,17 @@ class TimerDialog(QtWidgets.QDialog):
             self.timer.stop()
             self.start_button.setEnabled(True)
             self.pause_button.setEnabled(False)
+            
+            # Emit timer paused event
+            self.event_bus.emit_event(
+                EventType.TIMER_PAUSED,
+                {
+                    'task_id': self.task_id,
+                    'current_seconds': self.total_seconds,
+                    'duration_changed': self.has_duration_changed()
+                },
+                'TimerDialog'
+            )
     
     def reset_timer(self):
         """Reset the timer with confirmation"""
@@ -328,6 +394,18 @@ class TimerDialog(QtWidgets.QDialog):
         # Stop the timer if running
         if self.is_running:
             self.pause_timer()
+        
+        # Emit timer stopped event
+        self.event_bus.emit_event(
+            EventType.TIMER_STOPPED,
+            {
+                'task_id': self.task_id,
+                'final_seconds': self.total_seconds,
+                'duration_changed': self.has_duration_changed(),
+                'was_first_start': self.is_first_start_for_task and self.start_timestamp_for_new_task is not None
+            },
+            'TimerDialog'
+        )
         
         # Update the parent grid with the new values
         if self.parent_grid and hasattr(self.parent_grid, 'update_task_time_and_duration_from_timer'):

@@ -7,7 +7,7 @@
     "default_week_start_hour": 9,
     "default_week_end_day": 1,
     "default_week_end_hour": 9,
-    "enforce_exact_week_duration": true
+    "enforce_exact_week_duration": false
   },
   "bonus_settings": {
     "use_global_defaults": true,
@@ -23,11 +23,12 @@
   },
   "office_hours_settings": {
     "default_office_hour_payrate": 25.3,
-    "default_office_hour_session_duration_minutes": 30
+    "default_office_hour_session_duration_minutes": 30.0
   },
   "ui_settings": {
     "show_week_boundary_warnings": true,
     "auto_suggest_new_week": true,
-    "default_payrate": 25.3
+    "default_payrate": 25.3,
+    "auto_edit_new_tasks": false
   }
 }

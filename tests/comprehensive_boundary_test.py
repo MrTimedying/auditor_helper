@@ -9,7 +9,7 @@ import sqlite3
 from datetime import datetime, timedelta
 sys.path.insert(0, 'src')
 
-from ui.task_grid import TaskGrid
+from ui.qml_task_grid import QMLTaskGrid
 from core.settings.global_settings import global_settings
 from core.db.db_schema import init_db, migrate_week_settings, migrate_week_bonus_settings, migrate_office_hours_settings
 from PySide6 import QtCore, QtWidgets
@@ -36,7 +36,7 @@ def test_all_fixes():
     
     # Create mock main window and task grid
     main_window = MockMainWindow()
-    task_grid = TaskGrid(main_window)
+    task_grid = QMLTaskGrid(main_window)
     task_grid.main_window = main_window
     
     # Create test weeks

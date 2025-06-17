@@ -15,21 +15,21 @@ class CollapsibleWeekSidebar(QtWidgets.QWidget):
         self.expanded_width = 250  # Desired width when expanded
         self.animation_duration = 200 # milliseconds
 
+        # Set size policy to not constrain parent
+        self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Expanding)
+
         self.setup_ui()
         self.setup_animation()
         self.set_initial_state()
 
     def setup_ui(self):
-        self.setFixedWidth(self.expanded_width) # Set initial width
-        self.setMinimumWidth(self.collapsed_width) # Allow collapsing
-
         self.main_layout = QtWidgets.QHBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
         # Collapsed view elements (icon/button to expand)
-        self.collapse_button = QtWidgets.QPushButton("Weeks") # Changed text to 'Weeks'
-        self.collapse_button.setFixedSize(self.collapsed_width, self.height())
+        self.collapse_button = QtWidgets.QPushButton("Weeks")
+        self.collapse_button.setFixedSize(self.collapsed_width, 30)
         self.collapse_button.clicked.connect(self.toggle)
         self.collapse_button.setStyleSheet("""
             QPushButton {
@@ -47,7 +47,7 @@ class CollapsibleWeekSidebar(QtWidgets.QWidget):
         
         # Expanded view element (button to collapse)
         self.expand_collapse_button = QtWidgets.QPushButton("⬅️ Hide Weeks")
-        self.expand_collapse_button.setFixedSize(self.expanded_width, 30) # Fixed height for the button
+        self.expand_collapse_button.setFixedHeight(30)
         self.expand_collapse_button.clicked.connect(self.toggle)
         self.expand_collapse_button.setStyleSheet("""
             QPushButton {
@@ -75,6 +75,7 @@ class CollapsibleWeekSidebar(QtWidgets.QWidget):
         self.main_layout.addLayout(self.expanded_content_layout)
 
     def setup_animation(self):
+        # Simple width animation
         self.animation = QtCore.QPropertyAnimation(self, b"minimumWidth", self)
         self.animation.setDuration(self.animation_duration)
         self.animation.finished.connect(self._on_animation_finished)
@@ -91,7 +92,6 @@ class CollapsibleWeekSidebar(QtWidgets.QWidget):
             self.collapse_button.show()
             self.setFixedWidth(self.collapsed_width)
 
-
     def toggle(self):
         if self.animation.state() == QtCore.QAbstractAnimation.Running:
             return
@@ -100,7 +100,6 @@ class CollapsibleWeekSidebar(QtWidgets.QWidget):
             # Collapse
             self.animation.setStartValue(self.width())
             self.animation.setEndValue(self.collapsed_width)
-            self.animation.setProperty("property", b"minimumWidth") # Set property to animate
             self.week_widget.hide() # Hide content immediately
             self.expand_collapse_button.hide()
             self.collapse_button.show() # Show collapse button
@@ -109,7 +108,6 @@ class CollapsibleWeekSidebar(QtWidgets.QWidget):
             # Expand
             self.animation.setStartValue(self.width())
             self.animation.setEndValue(self.expanded_width)
-            self.animation.setProperty("property", b"minimumWidth") # Set property to animate
             self.week_widget.show() # Show content immediately
             self.expand_collapse_button.show()
             self.collapse_button.hide() # Hide collapse button
@@ -118,21 +116,23 @@ class CollapsibleWeekSidebar(QtWidgets.QWidget):
         self.animation.start()
         
     def _on_animation_finished(self):
-        # Ensure the width is set to the final value after animation
+        # Set final width
         if self.is_expanded:
             self.setFixedWidth(self.expanded_width)
-            self.week_widget.show()
-            self.expand_collapse_button.show()
-            self.collapse_button.hide()
         else:
             self.setFixedWidth(self.collapsed_width)
-            self.week_widget.hide()
-            self.expand_collapse_button.hide()
-            self.collapse_button.show()
-            
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if not self.is_expanded: # Only update button size if collapsed
-            self.collapse_button.setFixedSize(self.collapsed_width, self.height())
-        else: # Update the expanded button height as well
-            self.expand_collapse_button.setFixedSize(self.expanded_width, 30) 
+
+    def sizeHint(self):
+        """Provide size hint based on current state"""
+        if self.is_expanded:
+            week_widget_hint = self.week_widget.sizeHint()
+            return QtCore.QSize(self.expanded_width, max(week_widget_hint.height() + 30, 200))
+        else:
+            return QtCore.QSize(self.collapsed_width, 200)  # Reasonable minimum height when collapsed
+
+    def minimumSizeHint(self):
+        """Provide minimum size hint"""
+        if self.is_expanded:
+            return QtCore.QSize(self.expanded_width, 150)
+        else:
+            return QtCore.QSize(self.collapsed_width, 30) 

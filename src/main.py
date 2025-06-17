@@ -1,15 +1,19 @@
 import sys
 import os
 from PySide6 import QtCore, QtWidgets, QtGui
-from PySide6.QtCore import QPropertyAnimation
+from PySide6.QtCore import QPropertyAnimation, QTimer
 import pathlib
 import logging
+
+# Startup optimization imports
+from core.optimization.startup_monitor import get_startup_monitor, monitor_startup_phase
+from core.optimization.lazy_imports import setup_scientific_libraries, preload_critical_modules
 
 # Removed debug logging - no longer needed
 
 # Import our new components
 from ui.week_widget import WeekWidget
-from ui.task_grid import TaskGrid
+from ui.qml_task_grid import QMLTaskGrid
 from analysis.analysis_widget import AnalysisWidget
 from core.db.db_schema import run_all_migrations
 from core.db.export_data import export_week_to_csv, export_all_weeks_to_excel
@@ -19,6 +23,15 @@ from ui.theme_manager import ThemeManager
 from ui.options import OptionsDialog
 from ui.collapsible_week_sidebar import CollapsibleWeekSidebar
 from core.settings.global_settings import get_icon_path
+
+# Import Data Service Layer components
+from core.services import WeekDAO, DataServiceError
+
+# Import Event Bus components
+from core.events import get_event_bus, EventType
+
+# Import DataService
+from core.services.data_service import DataService
 
 basedir = os.path.dirname(__file__)
 project_root = pathlib.Path(__file__).resolve().parent.parent
@@ -32,9 +45,13 @@ except ImportError:
     pass
 
 class MainWindow(QtWidgets.QMainWindow):
+    @monitor_startup_phase("MainWindow Initialization", "Initialize main window and core components", critical=True)
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Auditor Helper") # Set proper title instead of empty string
+        
+        # Initialize logger first
+        self.logger = logging.getLogger(__name__)
         
         # Set window icon
         try:
@@ -46,7 +63,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(1200, 800)
         
         # Initialize the database and run all migrations
-        run_all_migrations()
+        self._run_optimized_migrations()
+        
+        # Initialize Event Bus
+        self.event_bus = get_event_bus()
         
         # Initialize toaster manager
         self.toaster_manager = ToasterManager(self)
@@ -56,6 +76,19 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Initialize ThemeManager
         self.theme_manager = ThemeManager()
+        
+        # Initialize Data Access Objects
+        self.week_dao = WeekDAO()
+        
+        # Initialize UI state
+        self.current_week_id = None
+        self.bonus_toggle_btn = None
+        
+        # Initialize Redis and DataService
+        self._init_redis_and_data_service()
+        
+        # Setup lazy imports for scientific libraries (background loading)
+        self._setup_lazy_imports()
         
         # Create central widget and main layout
         central_widget = QtWidgets.QWidget()
@@ -84,17 +117,18 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Create the custom collapsible week sidebar
         self.collapsible_week_sidebar = CollapsibleWeekSidebar(self.week_widget, parent=self)
-        self.collapsible_week_sidebar.setMinimumWidth(self.collapsible_week_sidebar.collapsed_width)
-        self.collapsible_week_sidebar.setMaximumWidth(self.collapsible_week_sidebar.expanded_width)
+        # Removed explicit width constraints - let the sidebar manage its own size
         
-        # Add the collapsible sidebar to the main layout (e.g., left side)
-        # For now, let's assume it goes into a horizontal layout with the task area
-        # We need to create a main horizontal layout for task area and sidebar
-        content_layout = QtWidgets.QHBoxLayout()
-        content_layout.addWidget(self.collapsible_week_sidebar)
+        # Create a content widget that will contain both sidebar and task area
+        content_widget = QtWidgets.QWidget()
+        content_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        content_layout = QtWidgets.QHBoxLayout(content_widget)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(5)
+        content_layout.addWidget(self.collapsible_week_sidebar, 0)  # No stretch - sidebar takes its preferred size
         
-        # Initialize analysis widget here as a standalone window
-        self.analysis_widget = AnalysisWidget()
+        # Initialize analysis widget lazily - only create when needed
+        self.analysis_widget = None
         
         # Create menu bar
         self.create_menu_bar()
@@ -166,8 +200,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         task_layout.addLayout(top_buttons_layout)
 
-        # Task grid
-        self.task_grid = TaskGrid(self)
+        # Task grid (QML-based)
+        self.task_grid = QMLTaskGrid(self)
         self.task_grid.set_office_hour_count_label(self.office_hour_count_label) # Pass the label to TaskGrid
         task_layout.addWidget(self.task_grid)
 
@@ -175,12 +209,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_oh_session_btn.clicked.connect(self.task_grid.add_office_hour_session)
         self.remove_oh_session_btn.clicked.connect(self.task_grid.remove_office_hour_session)
 
-        # Add task area to main layout
-        content_layout.addWidget(add_task_area)
-        main_layout.addLayout(content_layout)
+        # Add task area to content layout with stretch factor
+        content_layout.addWidget(add_task_area, 1)  # Stretch factor 1 - fills remaining space
         
-        # Connect signals
+        # Add the content widget to the main layout
+        main_layout.addWidget(content_widget, 1)  # Allow content to expand
+        
+        # Connect signals - maintain backward compatibility
         self.week_widget.weekChanged.connect(self.on_week_changed)
+        
+        # Connect to Event Bus events
+        self.setup_event_bus_listeners()
         
         # Initial state
         self.current_week_id = None
@@ -190,6 +229,40 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Update bonus button style on init
         self.update_bonus_button_style() # Initial style update
+        
+        # Set up timer to update bonus button style periodically
+        self.bonus_update_timer = QTimer()
+        self.bonus_update_timer.timeout.connect(self.update_bonus_button_style)
+        self.bonus_update_timer.start(5000)  # Update every 5 seconds
+    
+    def _init_redis_and_data_service(self):
+        """Initialize multi-tier cache system (no Redis dependencies)"""
+        try:
+            # Use FastDataService with multi-tier cache (no network dependencies)
+            from core.optimization.multi_tier_cache import FastDataService
+            self.logger.info("Initializing multi-tier cache system")
+            self.data_service = FastDataService.get_instance()
+            self.logger.info("✅ Multi-tier cache system initialized - Memory + SQLite tiers active")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to initialize multi-tier cache: {e}")
+            raise
+    
+    def get_cache_statistics(self):
+        """Get current cache performance statistics"""
+        if hasattr(self, 'data_service'):
+            return self.data_service.get_performance_stats()
+        return {"multi_tier_cache_active": False}
+    
+    def clear_application_cache(self):
+        """Clear all application cache"""
+        if hasattr(self, 'data_service') and hasattr(self.data_service, 'cache_manager'):
+            self.data_service.cache_manager.clear_all_cache()
+            self.logger.info("🧹 Application cache cleared")
+            
+            # Refresh UI components
+            if hasattr(self, 'refresh_analysis'):
+                self.refresh_analysis()
     
     def apply_theme(self):
         """Apply the current theme (dark or light) to the application"""
@@ -285,12 +358,140 @@ class MainWindow(QtWidgets.QMainWindow):
         # This method is now empty as week_dock is no longer used
         pass
 
+    def setup_event_bus_listeners(self):
+        """Set up event bus listeners for application-wide events"""
+        # Week-related events
+        self.event_bus.connect_handler(EventType.WEEK_CHANGED, self.on_week_changed_event)
+        self.event_bus.connect_handler(EventType.WEEK_CREATED, self.on_week_created_event)
+        self.event_bus.connect_handler(EventType.WEEK_DELETED, self.on_week_deleted_event)
+        
+        # Task-related events
+        self.event_bus.connect_handler(EventType.TASK_CREATED, self.on_task_created_event)
+        self.event_bus.connect_handler(EventType.TASK_UPDATED, self.on_task_updated_event)
+        self.event_bus.connect_handler(EventType.TASK_DELETED, self.on_task_deleted_event)
+        self.event_bus.connect_handler(EventType.TASK_SELECTION_CHANGED, self.on_task_selection_changed_event)
+        
+        # Timer-related events
+        self.event_bus.connect_handler(EventType.TIMER_STARTED, self.on_timer_started_event)
+        self.event_bus.connect_handler(EventType.TIMER_STOPPED, self.on_timer_stopped_event)
+        self.event_bus.connect_handler(EventType.TIMER_UPDATED, self.on_timer_updated_event)
+        
+        # UI-related events
+        self.event_bus.connect_handler(EventType.UI_REFRESH_REQUESTED, self.on_ui_refresh_requested_event)
+        self.event_bus.connect_handler(EventType.DELETE_BUTTON_UPDATE_REQUESTED, self.on_delete_button_update_requested_event)
+
+    def on_week_changed_event(self, event_data):
+        """Handle week changed events from event bus"""
+        week_id = event_data.data.get('week_id')
+        week_label = event_data.data.get('week_label')
+        
+        # Emit event to notify other components that need to update
+        self.event_bus.emit_event(
+            EventType.UI_REFRESH_REQUESTED,
+            {'reason': 'week_changed', 'week_id': week_id, 'week_label': week_label},
+            'MainWindow'
+        )
+        
+        # Update analysis widget (only if it exists)
+        if self.analysis_widget is not None:
+            self.analysis_widget.refresh_week_combo()
+        
+        # Update bonus button
+        self.update_bonus_button_style()
+
+    def on_week_created_event(self, event_data):
+        """Handle week created events from event bus"""
+        week_label = event_data.data.get('week_label')
+        
+        # Refresh analysis widget week combo (only if it exists)
+        if self.analysis_widget is not None:
+            self.analysis_widget.refresh_week_combo()
+        
+        # Show notification if not already shown by the source component
+        if event_data.source != 'MainWindow':
+            self.toaster_manager.show_info(f"Week '{week_label}' created", "Week Created", 3000)
+
+    def on_week_deleted_event(self, event_data):
+        """Handle week deleted events from event bus"""
+        week_label = event_data.data.get('week_label')
+        
+        # Refresh analysis widget week combo (only if it exists)
+        if self.analysis_widget is not None:
+            self.analysis_widget.refresh_week_combo()
+        
+        # Show notification if not already shown by the source component
+        if event_data.source != 'MainWindow':
+            self.toaster_manager.show_info(f"Week '{week_label}' deleted", "Week Deleted", 3000)
+
+    def on_task_created_event(self, event_data):
+        """Handle task created events from event bus"""
+        # Refresh analysis if needed
+        self.refresh_analysis()
+
+    def on_task_updated_event(self, event_data):
+        """Handle task updated events from event bus"""
+        # Refresh analysis if needed
+        self.refresh_analysis()
+
+    def on_task_deleted_event(self, event_data):
+        """Handle task deleted events from event bus"""
+        # Refresh analysis if needed
+        self.refresh_analysis()
+
+    def on_task_selection_changed_event(self, event_data):
+        """Handle task selection changed events from event bus"""
+        # Update delete button
+        self.update_delete_button()
+
+    def on_timer_started_event(self, event_data):
+        """Handle timer started events from event bus"""
+        # Could show notification or update UI state
+        pass
+
+    def on_timer_stopped_event(self, event_data):
+        """Handle timer stopped events from event bus"""
+        # Refresh analysis to reflect time updates
+        self.refresh_analysis()
+
+    def on_timer_updated_event(self, event_data):
+        """Handle timer updated events from event bus"""
+        # Could update UI to show current timer state
+        pass
+
+    def on_ui_refresh_requested_event(self, event_data):
+        """Handle UI refresh requests from event bus"""
+        reason = event_data.data.get('reason')
+        
+        if reason == 'week_changed':
+            week_id = event_data.data.get('week_id')
+            week_label = event_data.data.get('week_label')
+            
+            # Update current week tracking
+            self.current_week_id = week_id
+            
+            # Refresh task grid
+            self.task_grid.refresh_tasks(week_id)
+            
+            # Update office hour count display
+            self.task_grid.update_office_hour_count_display()
+            
+            # Update window title
+            if week_label:
+                self.setWindowTitle(f"Auditor Helper - {week_label}")
+            else:
+                self.setWindowTitle("Auditor Helper")
+
+    def on_delete_button_update_requested_event(self, event_data):
+        """Handle delete button update requests from event bus"""
+        self.update_delete_button()
+
     def on_week_changed(self, week_id, week_label):
         self.current_week_id = week_id
         self.task_grid.refresh_tasks(week_id)
         
-        # Refresh the week combo in analysis widget to mirror week widget changes
-        self.analysis_widget.refresh_week_combo()
+        # Refresh the week combo in analysis widget to mirror week widget changes (only if it exists)
+        if self.analysis_widget is not None:
+            self.analysis_widget.refresh_week_combo()
         
         # Update bonus button for the new week
         self.update_bonus_button_style()
@@ -356,38 +557,49 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         
         # Get current week bonus status
-        import sqlite3
-        conn = sqlite3.connect("tasks.db")
-        c = conn.cursor()
-        c.execute("SELECT is_bonus_week FROM weeks WHERE id=?", (self.current_week_id,))
-        result = c.fetchone()
-        
-        if result is None:
-            conn.close()
-            return
-        
-        current_bonus_status = bool(result[0])
-        new_bonus_status = not current_bonus_status
-        
-        # Update database
-        c.execute("UPDATE weeks SET is_bonus_week=? WHERE id=?", (int(new_bonus_status), self.current_week_id))
-        conn.commit()
-        conn.close()
-        
-        # Update button state and style
-        self.bonus_toggle_btn.setChecked(new_bonus_status)
-        self.update_bonus_button_style()
-        
-        # Show feedback to user
-        status_text = "enabled" if new_bonus_status else "disabled"
-        self.toaster_manager.show_info(
-            f"Bonus {status_text} for current week",
-            "Bonus Status Updated",
-            3000
-        )
-        
-        # Refresh analysis to reflect bonus changes
-        self.refresh_analysis()
+        try:
+            week_data = self.week_dao.get_week_by_id(self.current_week_id)
+            if week_data:
+                current_bonus_status = bool(week_data.get('is_bonus_week', 0))
+                new_bonus_status = not current_bonus_status
+                
+                # Update database
+                success = self.week_dao.update_week(
+                    self.current_week_id, 
+                    is_bonus_week=1 if new_bonus_status else 0
+                )
+                
+                if success:
+                    self.logger.info(f"Updated week {self.current_week_id} bonus status to {new_bonus_status}")
+                    
+                    # Update button state and style
+                    self.bonus_toggle_btn.setChecked(new_bonus_status)
+                    self.update_bonus_button_style()
+                    
+                    # Show feedback to user
+                    status_text = "enabled" if new_bonus_status else "disabled"
+                    self.toaster_manager.show_info(
+                        f"Bonus {status_text} for current week",
+                        "Bonus Status Updated",
+                        3000
+                    )
+                    
+                    # Refresh analysis to reflect bonus changes
+                    self.refresh_analysis()
+                else:
+                    self.logger.error(f"Failed to update week {self.current_week_id} bonus status")
+                    self.toaster_manager.show_error(
+                        "Failed to update bonus status",
+                        "Update Failed",
+                        3000
+                    )
+        except DataServiceError as e:
+            self.logger.error(f"Error toggling week bonus: {e}")
+            self.toaster_manager.show_error(
+                f"Database error: {str(e)}",
+                "Error",
+                5000
+            )
     
     def update_bonus_button_style(self):
         """Update the bonus button styling based on current state"""
@@ -410,14 +622,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Global bonus is enabled, check current week status
         is_bonus_week = False
         if self.current_week_id is not None:
-            import sqlite3
-            conn = sqlite3.connect("tasks.db")
-            c = conn.cursor()
-            c.execute("SELECT is_bonus_week FROM weeks WHERE id=?", (self.current_week_id,))
-            result = c.fetchone()
-            conn.close()
-            if result:
-                is_bonus_week = bool(result[0])
+            try:
+                week_data = self.week_dao.get_week_by_id(self.current_week_id)
+                if week_data:
+                    is_bonus_week = bool(week_data.get('is_bonus_week', 0))
+            except DataServiceError as e:
+                self.logger.error(f"Error getting week bonus status: {e}")
+                # Continue with default (False) value
         
         self.bonus_toggle_btn.setEnabled(True)
         self.bonus_toggle_btn.setChecked(is_bonus_week)
@@ -440,7 +651,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.bonus_toggle_btn.setToolTip("This week does not use bonus. Click to enable global bonus settings.")
     
     def refresh_analysis(self):
-        self.analysis_widget.refresh_analysis(self.current_week_id)
+        """Refresh analysis widget if it exists"""
+        if self.analysis_widget is not None:
+            self.analysis_widget.refresh_analysis(self.current_week_id)
     
     def export_current_week(self):
         """Export the current week's tasks to a CSV file"""
@@ -503,8 +716,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 
                 # Refresh UI
                 self.week_widget.refresh_weeks()
-                # Refresh the week combo in analysis widget to mirror week widget changes
-                self.analysis_widget.refresh_week_combo()
+                # Refresh the week combo in analysis widget if it exists
+                if self.analysis_widget is not None:
+                    self.analysis_widget.refresh_week_combo()
                 if self.current_week_id:
                     self.task_grid.refresh_tasks(self.current_week_id)
                 
@@ -515,7 +729,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.toaster_manager.show_error(f"Failed to import data: {str(e)}", "Import Failed", 5000)
 
     def show_analysis_widget(self):
-        """Show the AnalysisWidget as a separate window"""
+        """Show the AnalysisWidget as a separate window (lazy initialization)"""
+        if self.analysis_widget is None:
+            # Create the AnalysisWidget only when first needed
+            self.analysis_widget = AnalysisWidget()
         self.analysis_widget.show()
 
     def toggle_week_sidebar(self):
@@ -534,18 +751,90 @@ class MainWindow(QtWidgets.QMainWindow):
             if hasattr(self, 'task_grid') and self.task_grid:
                 self.task_grid.cleanup_diagnostics()
             
+            # Multi-tier cache cleanup (no Redis dependencies)
+            try:
+                if hasattr(self, 'data_service') and hasattr(self.data_service, 'cache_manager'):
+                    # Clean shutdown of cache system
+                    self.logger.info("Cleaning up multi-tier cache system")
+            except Exception as cache_error:
+                self.logger.error(f"Error cleaning up cache: {cache_error}")
+            
             # Accept the close event
             event.accept()
         except Exception as e:
             print(f"Error during application cleanup: {e}")
             event.accept()
+    
+    @monitor_startup_phase("Database Migrations", "Run database schema migrations", critical=True)
+    def _run_optimized_migrations(self):
+        """Run database migrations with Phase 2 optimizations"""
+        try:
+            from core.optimization.database_optimizer import optimize_database_startup
+            from core.optimization.startup_profiler import profile_phase
+            
+            with profile_phase("Database Optimization"):
+                # Phase 2: Use optimized database system
+                self.db_manager = optimize_database_startup()
+                self.logger.info("Phase 2: Database optimizations applied")
+                self.logger.info("✅ Connection pooling, WAL mode, and performance settings active")
+                
+        except Exception as e:
+            self.logger.error(f"Phase 2 database optimization error: {e}")
+            # Fallback to original migrations
+            self.logger.info("🔄 Falling back to original migration system")
+            try:
+                run_all_migrations()
+                self.logger.info("✅ Database migrations completed successfully")
+            except Exception as fallback_error:
+                self.logger.error(f"❌ Database migration failed: {fallback_error}")
+                raise
+    
+    def _setup_lazy_imports(self):
+        """Setup lazy imports for scientific libraries"""
+        try:
+            # Setup lazy imports for heavy scientific libraries
+            lazy_libraries = setup_scientific_libraries()
+            
+            # Start background preloading of critical modules
+            preload_critical_modules()
+            
+            # Mark optimization as active
+            monitor = get_startup_monitor()
+            monitor.set_optimization_flags(lazy_imports=True, cache_system=False)
+            
+            self.logger.info(f"Lazy imports configured for {len(lazy_libraries)} scientific libraries")
+            
+        except Exception as e:
+            self.logger.warning(f"⚠️  Lazy import setup failed: {e}")
+            # Continue without lazy imports - not critical for functionality
 
 # Main application entry point
 if __name__ == "__main__":
+    # Start Phase 2 startup performance monitoring
+    from core.optimization.startup_profiler import get_startup_profiler, print_startup_report
+    
+    profiler = get_startup_profiler()
+    
+    # Start startup performance monitoring
+    startup_monitor = get_startup_monitor()
+    startup_monitor.start_session("main_startup")
+    
+    startup_monitor.start_phase("Application Setup", "Initialize Qt application and environment", critical=True)
+    
+    # Set environment variable to force Qt style before creating QApplication
+    os.environ['QT_QUICK_CONTROLS_STYLE'] = 'Material'
+    
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationDisplayName("") # Set empty application display name
+    
+    # Set Qt style to Material to enable ScrollBar customization
+    app.setStyle("Material")
+    
+    startup_monitor.finish_phase("Application Setup")
 
     # Check for first startup and show wizard if needed
+    startup_monitor.start_phase("First Startup Check", "Check if first startup wizard is needed")
+    
     from core.settings.global_settings import global_settings
     if global_settings.is_first_startup():
         from ui.first_startup_wizard import FirstStartupWizard
@@ -553,8 +842,28 @@ if __name__ == "__main__":
         if wizard.exec() != QtWidgets.QDialog.Accepted:
             # User canceled setup, exit application
             sys.exit(0)
-
+    
+    startup_monitor.finish_phase("First Startup Check")
+    
+    # Create and show main window
+    startup_monitor.start_phase("Main Window Creation", "Create and display main application window", critical=True)
+    
     main_window = MainWindow()
     main_window.show()
+    
+    startup_monitor.finish_phase("Main Window Creation")
+    
+    # Finish startup monitoring
+    startup_monitor.finish_session()
+    
+    # Generate simple startup summary
+    report = startup_monitor.get_performance_report()
+    if 'error' not in report:
+        latest_time = report['timing_analysis']['latest_time']
+        grade = report['summary']['current_performance_grade']
+        print(f"\nAuditor Helper started successfully in {latest_time:.2f}s (Performance: {grade})")
+    else:
+        print("\nAuditor Helper started successfully")
+    
     sys.exit(app.exec())
 

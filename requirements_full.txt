@@ -1,0 +1,25 @@
+# Full version requirements - includes all features including advanced charting
+# Generated for Auditor Helper v0.18.3 Full Variant
+
+# Core GUI Framework
+PySide6>=6.5.0
+
+# Data processing and analysis
+pandas>=1.5.0
+numpy>=1.21.0
+
+# Chart rendering and visualization (Full version only)
+matplotlib>=3.6.0
+seaborn>=0.11.0
+
+# Statistical analysis and machine learning
+scikit-learn>=1.1.0
+
+# System monitoring and performance
+psutil>=5.9.0
+
+# Build tool
+pyinstaller>=5.10.0
+
+# Optional dependencies for enhanced functionality
+packaging>=21.0 

@@ -28,6 +28,11 @@ class GeneralPage(BasePage):
         self.auto_suggestions_cb.setToolTip("Automatically suggest creating new weeks for out-of-boundary tasks")
         layout.addWidget(self.auto_suggestions_cb)
         
+        # Auto-edit new tasks
+        self.auto_edit_new_tasks_cb = QtWidgets.QCheckBox("Auto-edit new tasks")
+        self.auto_edit_new_tasks_cb.setToolTip("Automatically open the edit dialog when creating new tasks")
+        layout.addWidget(self.auto_edit_new_tasks_cb)
+        
         layout.addStretch()
         
     def load_settings(self):
@@ -35,6 +40,7 @@ class GeneralPage(BasePage):
         try:
             self.boundary_warnings_cb.setChecked(global_settings.should_show_boundary_warnings())
             self.auto_suggestions_cb.setChecked(global_settings.should_auto_suggest_new_week())
+            self.auto_edit_new_tasks_cb.setChecked(global_settings.should_auto_edit_new_tasks())
             
         except Exception as e:
             print(f"Error loading general settings: {e}")
@@ -44,6 +50,7 @@ class GeneralPage(BasePage):
         try:
             global_settings.set_setting("ui_settings.show_week_boundary_warnings", self.boundary_warnings_cb.isChecked())
             global_settings.set_setting("ui_settings.auto_suggest_new_week", self.auto_suggestions_cb.isChecked())
+            global_settings.set_setting("ui_settings.auto_edit_new_tasks", self.auto_edit_new_tasks_cb.isChecked())
             
             return True
             
